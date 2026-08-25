@@ -15,8 +15,16 @@
    script de chaque page (players.html, dashboard.html, etc.).
    ========================================================================== */
 
+// En local (localhost/127.0.0.1/fichier ouvert directement), l'API tourne sur
+// localhost:4000. Servi depuis coachboot-frontend.onrender.com (Render), on
+// pointe vers le backend Render déployé séparément — jamais deviné, jamais de
+// mélange : ces deux environnements ne se chevauchent pas.
+const CB_DEFAULT_API_BASE = ['localhost', '127.0.0.1', ''].includes(location.hostname)
+  ? 'http://localhost:4000/api'
+  : 'https://coachboot-backend.onrender.com/api';
+
 const CB_API = {
-  base: window.COACHBOOT_API_BASE || 'http://localhost:4000/api',
+  base: window.COACHBOOT_API_BASE || CB_DEFAULT_API_BASE,
 
   token() { return localStorage.getItem('coachboot-token'); },
   user() { try { return JSON.parse(localStorage.getItem('coachboot-user') || 'null'); } catch { return null; } },
