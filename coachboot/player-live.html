@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Joueur — Live GPS · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .btn[hidden] { display: none !important; }
+    .pl-wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    .pl-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .pl-stat { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius, 10px); padding: 16px; text-align: center; }
+    .pl-stat .n { font-family: var(--font-mono); font-size: 30px; font-weight: 700; line-height: 1.1; }
+    .pl-stat .u { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+    .pl-cta { position: sticky; bottom: 12px; margin-top: 16px; }
+    .pl-cta .btn { width: 100%; padding: 16px; font-size: 15px; }
+    .pl-pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: plPulse 1.4s infinite; }
+    @keyframes plPulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  </style>
+</head>
+<body data-page="player-live">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="pl-wrap">
+
+          <div class="page-head" style="margin-bottom:16px;">
+            <div>
+              <span class="eyebrow">Application joueur</span>
+              <h1>Live GPS</h1>
+              <p>Rejoignez un match et diffusez votre position en direct au staff.</p>
+            </div>
+          </div>
+
+          <!-- ---- Connexion (visible si aucune session active) ---- -->
+          <div class="card" id="plLoginCard" style="margin-bottom:16px;">
+            <div class="card__head"><h3><i class="fa-solid fa-right-to-bracket"></i> Connexion</h3></div>
+            <div class="card__body">
+              <form id="plLoginForm">
+                <div class="field"><label>Adresse e-mail</label><input type="email" id="plEmail" required placeholder="joueur@coachboot.app"></div>
+                <div class="field"><label>Mot de passe</label><input type="password" id="plPassword" required placeholder="••••••••"></div>
+                <button type="submit" class="btn btn-primary btn-block" id="plLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- ---- Application (visible une fois connecté) ---- -->
+          <div id="plAppView" hidden>
+
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card__head"><h3><i class="fa-solid fa-futbol"></i> Rejoindre un match</h3><span class="badge badge-grey" id="plSocketBadge">Hors ligne</span></div>
+              <div class="card__body">
+                <div class="field"><label>Vous êtes</label><select id="plPlayerSelect"></select></div>
+                <div class="field"><label>Match</label><select id="plMatchSelect"></select></div>
+                <button class="btn btn-primary btn-block" id="plJoinBtn" type="button"><i class="fa-solid fa-plug-circle-check"></i> Rejoindre le match</button>
+                <button class="btn btn-outline btn-block" id="plLeaveBtn" type="button" hidden style="margin-top:8px;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Quitter le match</button>
+              </div>
+            </div>
+
+            <div class="card" id="plGpsCard" style="margin-bottom:16px;" hidden>
+              <div class="card__head"><h3><span class="pl-pulse" id="plPulse" style="visibility:hidden;"></span>GPS en direct</h3><span class="badge badge-grey" id="plGpsBadge">Inactif</span></div>
+              <div class="card__body">
+                <div class="pl-stat-grid">
+                  <div class="pl-stat"><div class="n" id="plDistance">0.00</div><div class="u">Distance (km)</div></div>
+                  <div class="pl-stat"><div class="n" id="plSpeed">0.0</div><div class="u">Vitesse (km/h)</div></div>
+                  <div class="pl-stat"><div class="n" id="plTime">00:00</div><div class="u">Temps de jeu</div></div>
+                  <div class="pl-stat"><div class="n" id="plSprints">0</div><div class="u">Sprints</div></div>
+                  <div class="pl-stat"><div class="n" id="plAccel">0</div><div class="u">Accélérations</div></div>
+                  <div class="pl-stat"><div class="n" id="plAccuracy">—</div><div class="u">Précision GPS</div></div>
+                </div>
+                <div class="pl-cta">
+                  <button class="btn btn-primary" id="plGpsStartBtn" type="button"><i class="fa-solid fa-location-crosshairs"></i> Activer le GPS</button>
+                  <button class="btn btn-danger" id="plGpsStopBtn" type="button" hidden><i class="fa-solid fa-stop"></i> Arrêter le GPS</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-ghost btn-sm" id="plLogoutBtn" type="button"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+  <!-- Socket.io client (GPS temps réel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/gps-live.js"></script>
+  <script src="assets/js/gps-socket-client.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    const els = {
+      loginCard: document.getElementById('plLoginCard'),
+      loginForm: document.getElementById('plLoginForm'),
+      loginBtn: document.getElementById('plLoginBtn'),
+      appView: document.getElementById('plAppView'),
+      logoutBtn: document.getElementById('plLogoutBtn'),
+
+      socketBadge: document.getElementById('plSocketBadge'),
+      playerSelect: document.getElementById('plPlayerSelect'),
+      matchSelect: document.getElementById('plMatchSelect'),
+      joinBtn: document.getElementById('plJoinBtn'),
+      leaveBtn: document.getElementById('plLeaveBtn'),
+
+      gpsCard: document.getElementById('plGpsCard'),
+      gpsBadge: document.getElementById('plGpsBadge'),
+      pulse: document.getElementById('plPulse'),
+      gpsStartBtn: document.getElementById('plGpsStartBtn'),
+      gpsStopBtn: document.getElementById('plGpsStopBtn'),
+
+      distance: document.getElementById('plDistance'),
+      speed: document.getElementById('plSpeed'),
+      time: document.getElementById('plTime'),
+      sprints: document.getElementById('plSprints'),
+      accel: document.getElementById('plAccel'),
+      accuracy: document.getElementById('plAccuracy'),
+    };
+
+    function fmt(n, d = 1) { return Number(n || 0).toFixed(d); }
+    function fmtMs(sec) {
+      sec = Math.floor(sec || 0);
+      return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+    }
+
+    /* ---------------------------------------------------------------------
+     * 1) Connexion au compte (formulaire compact intégré à l'app joueur)
+     * ------------------------------------------------------------------- */
+    function renderAuthState() {
+      const authed = CB_API.isAuthenticated();
+      els.loginCard.hidden = authed;
+      els.appView.hidden = !authed;
+      if (authed) initApp();
+    }
+
+    els.loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      els.loginBtn.disabled = true;
+      try {
+        const email = document.getElementById('plEmail').value;
+        const password = document.getElementById('plPassword').value;
+        const result = await CB_API.login(email, password);
+        CB_API.saveSession(result.token, result.user);
+        location.reload();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Connexion impossible', text: err.message || 'Identifiants invalides.' });
+      } finally {
+        els.loginBtn.disabled = false;
+      }
+    });
+
+    els.logoutBtn.addEventListener('click', () => {
+      if (window.CBGpsLive && CBGpsLive.isTracking()) CBGpsLive.stop();
+      if (window.CBGpsSocket) CBGpsSocket.disconnect();
+      CB_API.logout();
+      location.reload();
+    });
+
+    /* ---------------------------------------------------------------------
+     * 2) Rejoindre un match — sélection joueur + match, connexion Socket.io
+     * ------------------------------------------------------------------- */
+    let myPlayerId = null;
+    let selectedMatchId = null;
+
+    async function initApp() {
+      // "Vous êtes" — profil lié au compte si disponible, sinon liste complète à choisir.
+      // Seul le rôle "player" peut avoir un profil joueur lié : ne tenter l'appel
+      // /players/me que dans ce cas — sinon un 404 attendu (le staff n'a jamais de
+      // fiche joueur) polluerait la console du navigateur pour rien (même logique
+      // que la gestion des 401 attendus ailleurs dans l'app).
+      const currentUser = CB_API.user();
+      try {
+        const me = currentUser && currentUser.role === 'player' ? await CB_API.getMyPlayerProfile() : null;
+        if (me) {
+          myPlayerId = me.id;
+          els.playerSelect.innerHTML = `<option value="${me.id}">${escapeHtml(me.name)} (mon profil)</option>`;
+        } else {
+          throw new Error('no-link');
+        }
+      } catch {
+        try {
+          const { data } = await CB_API.getPlayers();
+          els.playerSelect.innerHTML = data.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+          myPlayerId = els.playerSelect.value;
+        } catch {
+          els.playerSelect.innerHTML = '<option value="">Effectif indisponible</option>';
+        }
+      }
+      els.playerSelect.addEventListener('change', () => { myPlayerId = els.playerSelect.value; });
+
+      // Matchs disponibles à rejoindre.
+      try {
+        const matches = await CB_API.getMatchesLive();
+        if (!matches.length) {
+          els.matchSelect.innerHTML = '<option value="">Aucun match en cours</option>';
+        } else {
+          els.matchSelect.innerHTML = matches.map(m =>
+            `<option value="${m.id}">${escapeHtml(m.team_home)} vs ${escapeHtml(m.team_away)} — ${m.date} (${m.status})</option>`
+          ).join('');
+          selectedMatchId = els.matchSelect.value;
+        }
+      } catch {
+        els.matchSelect.innerHTML = '<option value="">API injoignable</option>';
+      }
+      els.matchSelect.addEventListener('change', () => { selectedMatchId = els.matchSelect.value; });
+    }
+
+    els.joinBtn.addEventListener('click', () => {
+      if (!selectedMatchId || !myPlayerId) {
+        Swal.fire({ icon: 'info', title: 'Sélection requise', text: 'Choisissez votre profil et un match avant de rejoindre.' });
+        return;
+      }
+      if (!CBGpsSocket.connect()) return;
+      CBGpsSocket.joinAsPlayer(selectedMatchId, myPlayerId);
+    });
+
+    els.leaveBtn.addEventListener('click', () => {
+      if (window.CBGpsLive && CBGpsLive.isTracking()) CBGpsLive.stop();
+      CBGpsSocket.disconnect();
+      els.joinBtn.hidden = false; els.leaveBtn.hidden = true;
+      els.gpsCard.hidden = true;
+      els.socketBadge.className = 'badge badge-grey'; els.socketBadge.textContent = 'Hors ligne';
+    });
+
+    window.addEventListener('cbsocket:connect', () => {
+      els.socketBadge.className = 'badge badge-amber'; els.socketBadge.textContent = 'Connexion…';
+    });
+    window.addEventListener('cbsocket:joined', () => {
+      els.socketBadge.className = 'badge badge-green'; els.socketBadge.textContent = 'Connecté au match';
+      els.joinBtn.hidden = true; els.leaveBtn.hidden = false;
+      els.gpsCard.hidden = false;
+    });
+    window.addEventListener('cbsocket:disconnect', () => {
+      els.socketBadge.className = 'badge badge-grey'; els.socketBadge.textContent = 'Hors ligne';
+    });
+    window.addEventListener('cbsocket:error', (e) => {
+      Swal.fire({ icon: 'warning', title: 'Temps réel indisponible', text: e.detail.message || 'Erreur de connexion.' });
+    });
+
+    /* ---------------------------------------------------------------------
+     * 3) Activer le GPS réel (assets/js/gps-live.js) et le diffuser en direct
+     * ------------------------------------------------------------------- */
+    let prevSpeedKmh = 0, prevTickAt = null;
+
+    window.addEventListener('cbgps:start', () => {
+      els.gpsBadge.className = 'badge badge-green'; els.gpsBadge.textContent = 'Actif';
+      els.pulse.style.visibility = 'visible';
+      els.gpsStartBtn.hidden = true; els.gpsStopBtn.hidden = false;
+      prevSpeedKmh = 0; prevTickAt = null;
+    });
+
+    window.addEventListener('cbgps:tick', (e) => {
+      const s = e.detail;
+      els.distance.textContent = fmt(s.distanceKm, 2);
+      els.speed.textContent = fmt(s.currentSpeedKmh);
+      els.time.textContent = fmtMs(s.durationSec);
+      els.sprints.textContent = s.sprintCount;
+      els.accel.textContent = s.accelerationCount;
+      els.accuracy.textContent = s.accuracyM != null ? `± ${Math.round(s.accuracyM)} m` : '—';
+
+      // Accélération instantanée (m/s²), dérivée localement des deux derniers relevés —
+      // gps-live.js expose un compteur d'événements forts, pas la valeur instantanée.
+      const now = Date.now();
+      let instantAccel = 0;
+      if (prevTickAt) {
+        const dtSec = (now - prevTickAt) / 1000;
+        if (dtSec > 0) instantAccel = ((s.currentSpeedKmh - prevSpeedKmh) * (1000 / 3600)) / dtSec;
+      }
+      prevSpeedKmh = s.currentSpeedKmh; prevTickAt = now;
+
+      if (s.point && window.CBGpsSocket && CBGpsSocket.isConnected()) {
+        CBGpsSocket.sendGpsUpdate({
+          latitude: s.point.lat, longitude: s.point.lng,
+          speed: s.currentSpeedKmh, distance: s.distanceKm,
+          acceleration: Number(instantAccel.toFixed(2)),
+          sprintCount: s.sprintCount, durationSec: s.durationSec,
+          timestamp: s.point.t,
+        });
+      }
+    });
+
+    window.addEventListener('cbgps:stop', () => {
+      els.gpsBadge.className = 'badge badge-grey'; els.gpsBadge.textContent = 'Inactif';
+      els.pulse.style.visibility = 'hidden';
+      els.gpsStartBtn.hidden = false; els.gpsStopBtn.hidden = true;
+    });
+
+    window.addEventListener('cbgps:error', (e) => {
+      if (window.CBGpsLive && !CBGpsLive.isIdle()) return; // erreur transitoire, le suivi continue
+      els.gpsBadge.className = 'badge badge-red'; els.gpsBadge.textContent = 'Erreur';
+      els.gpsStartBtn.hidden = false; els.gpsStopBtn.hidden = true;
+      Swal.fire({ icon: 'warning', title: 'GPS indisponible', text: e.detail.message || "Impossible d'accéder à la position." });
+    });
+
+    els.gpsStartBtn.addEventListener('click', () => CBGpsLive.start());
+    els.gpsStopBtn.addEventListener('click', () => CBGpsLive.stop());
+
+    renderAuthState();
+  });</script>
+</body>
+</html>

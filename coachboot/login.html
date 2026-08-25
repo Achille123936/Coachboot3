@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="">
+
+    <div class="auth-wrap">
+      <div class="side turf-texture">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#06170F;font-family:var(--font-display);font-weight:700;">CB</div>
+          <b style="font-family:var(--font-display);font-size:17px;">CoachBoot Enterprise</b>
+        </div>
+        <div>
+          <h2 style="color:#fff;font-size:30px;max-width:380px;">La performance de votre club, pilotée par la donnée.</h2>
+          <div class="stat-ticker" style="max-width:420px;margin-top:20px;">
+            <div class="stat-ticker__item"><b>40+</b> modules</div>
+            <div class="stat-ticker__item"><b>10</b> rôles</div>
+          </div>
+        </div>
+        <div style="font-size:12px;opacity:.7;">© 2026 CoachBoot Enterprise</div>
+      </div>
+      <div class="form-col">
+        <div class="auth-card animate__animated animate__fadeIn">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
+            <h2 style="margin:0;">Connexion</h2>
+            <button class="theme-toggle" id="themeToggle"><span class="knob"><i class="fa-solid fa-moon"></i></span></button>
+          </div>
+          <p style="margin-bottom:22px;">Accédez à votre tableau de bord CoachBoot.</p>
+          <form id="authForm">
+            
+            <div class="field">
+    <label>Adresse e-mail</label>
+    <div class="input-icon">
+      <i class="fa-solid fa-envelope"></i>
+      <input type="email" placeholder="vous@club.com" value="">
+    </div>
+    
+  </div>
+            <div class="field">
+    <label>Mot de passe</label>
+    <div class="input-icon">
+      <i class="fa-solid fa-lock"></i>
+      <input type="password" placeholder="••••••••" value="">
+    </div>
+    
+  </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Se connecter <i class="fa-solid fa-arrow-right"></i></button>
+          </form>
+          <p style="text-align:center;margin-top:14px;font-size:12px;">
+            <a href="#" id="forgotPasswordLink" style="color:var(--text-muted)">Mot de passe oublié ?</a>
+          </p>
+          <p style="text-align:center;margin-top:4px;font-size:12.5px;">
+            Pas encore de compte ? <a href="register.html">Créer un compte</a>
+          </p>
+          <p style="text-align:center;"><a href="index.html" style="font-size:12px;color:var(--text-muted)"><i class="fa-solid fa-arrow-left"></i> Retour à l'accueil</a></p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer app-footer--standalone">
+      <div class="app-footer__brand">
+        <span class="app-footer__mark">CB</span>
+        <span>© 2026 CoachBoot Enterprise <span class="app-footer__sep">·</span> v1.0</span>
+      </div>
+      <nav class="app-footer__links">
+        <a href="index.html"><i class="fa-solid fa-house"></i> Accueil</a>
+        <a href="mailto:support@coachboot.app"><i class="fa-solid fa-life-ring"></i> Support</a>
+      </nav>
+    </footer>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+      document.getElementById('themeToggle')?.addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('coachboot-theme', next);
+      });
+      document.getElementById('forgotPasswordLink')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const { value: email } = await Swal.fire({
+          title: 'Mot de passe oublié',
+          input: 'email',
+          inputPlaceholder: 'vous@club.com',
+          confirmButtonText: 'Envoyer', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+        });
+        if (!email) return;
+        try {
+          const result = await CB_API.forgotPassword(email);
+          if (result.dev_reset_token) {
+            // Environnement de développement uniquement : aucun service e-mail n'est
+            // configuré (result.email_status === 'EMAIL_SERVICE_NOT_CONFIGURED'), donc
+            // le jeton est affiché ici pour pouvoir tester le flux — jamais en production.
+            await Swal.fire({
+              icon: 'info', title: 'Service e-mail non configuré (dev)',
+              html: `Aucun e-mail n'est réellement envoyé dans cet environnement.<br><a href="reset-password.html#token=${encodeURIComponent(result.dev_reset_token)}">Cliquer ici pour continuer la réinitialisation</a>`,
+              confirmButtonColor: '#2C8F5E',
+            });
+          } else {
+            Swal.fire({ icon: 'success', title: 'Vérifiez vos e-mails', text: result.message, confirmButtonColor: '#2C8F5E' });
+          }
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+
+      document.getElementById('authForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type=submit]');
+        const inputs = e.target.querySelectorAll('input');
+        const [email, password] = Array.from(inputs).map(i => i.value);
+        submitBtn.disabled = true; submitBtn.style.opacity = '.6';
+        try {
+          const result = await CB_API.login(email, password);
+          CB_API.saveSession(result.token, result.user);
+          await Swal.fire({ title: 'Connexion réussie', text: 'Bienvenue ' + result.user.name + ' — vos pages seront désormais alimentées par l\'API en direct.', icon: 'success', confirmButtonColor: '#2C8F5E' });
+          window.location.href = 'dashboard.html';
+        } catch (err) {
+          if (err.status) {
+            // API reachable, but rejected the request (bad credentials, duplicate email, validation…)
+            Swal.fire({ title: 'Impossible de continuer', text: err.message, icon: 'error', confirmButtonColor: '#2C8F5E' });
+          } else {
+            // API unreachable (backend not started, or page opened via file://)
+            const choice = await Swal.fire({
+              title: 'Serveur API non détecté',
+              html: "Le backend (dossier <code>coachboot-backend/</code>) ne semble pas démarré.<br><small>Lancer <code>npm start</code> dans <code>coachboot-backend/</code> (API sur <code>http://localhost:4000</code>), puis réessayer.</small>",
+              icon: 'warning', showCancelButton: true,
+              confirmButtonText: 'Continuer en mode démo', cancelButtonText: 'Annuler',
+              confirmButtonColor: '#2C8F5E',
+            });
+            if (choice.isConfirmed) window.location.href = 'dashboard.html';
+          }
+        } finally {
+          submitBtn.disabled = false; submitBtn.style.opacity = '1';
+        }
+      });
+    </script>
+</body>
+</html>

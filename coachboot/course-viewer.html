@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module Academy · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .btn[hidden] { display: none !important; }
+    .cv-layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .cv-layout { grid-template-columns: 1fr; } }
+    .cv-nav-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; border-radius: var(--radius-sm, 8px); padding: 10px 12px; font-size: 13px; color: var(--text); cursor: pointer; }
+    .cv-nav-item:hover { background: var(--bg-sunken); }
+    .cv-nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .cv-nav-item .n { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 16px; flex-shrink: 0; }
+    .cv-nav-item.active .n { color: var(--accent); }
+    .cv-lesson-block { margin-bottom: 18px; }
+    .cv-lesson-block h5 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+    .cv-lesson-block .body { font-size: 13.5px; line-height: 1.7; }
+    .cv-lesson-block .body p { margin: 0 0 10px; }
+    .cv-quiz-q { border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); padding: 14px; margin-bottom: 12px; }
+    .cv-quiz-choice { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; cursor: pointer; }
+    .cv-quiz-q.correct { border-color: var(--accent); background: var(--accent-soft); }
+    .cv-quiz-q.incorrect { border-color: var(--danger); background: var(--danger-soft); }
+    .cv-quiz-explain { font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  </style>
+</head>
+<body data-page="academy">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">CoachBoot IA Academy</span>
+            <h1 id="cvTitle">Chargement…</h1>
+            <p id="cvObjective"></p>
+          </div>
+          <div class="page-head__actions">
+            <span class="badge badge-grey" id="cvProgressBadge">—</span>
+            <a href="academy.html" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Catalogue</a>
+          </div>
+        </div>
+
+        <div class="card" id="cvMessage" style="margin-bottom:20px;"><div class="card__body" id="cvMessageBody">Chargement du module…</div></div>
+
+        <div class="cv-layout" id="cvBody" hidden>
+          <aside class="card"><div class="card__body" id="cvNavList" style="padding:8px;"></div></aside>
+          <div id="cvContent"></div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script>
+    // Fragment (#course=...) plutôt que query string (?course=...) : certains
+    // serveurs statiques (ex. `serve` avec ses URLs "propres") redirigent
+    // page.html -> /page en perdant la query string au passage — le fragment,
+    // lui, n'est jamais envoyé au serveur et survit donc à toute redirection.
+    const cvParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const cvCourseId = cvParams.get('course');
+    let cvData = null;       // { course, chapters, final_exercise }
+    let cvSelectedKey = null; // 'ch-<id>' | 'final' | 'certificate'
+
+    function cvSetMessage(html) {
+      document.getElementById('cvMessage').hidden = false;
+      document.getElementById('cvBody').hidden = true;
+      document.getElementById('cvMessageBody').innerHTML = html;
+    }
+
+    function cvLevelBadge(level) {
+      const kind = { 'Débutant': 'green', 'Intermédiaire': 'amber', 'Avancé': 'red' }[level] || 'grey';
+      return `<span class="badge badge-${kind}">${escapeHtml(level)}</span>`;
+    }
+
+    function cvRenderNav() {
+      const { chapters, final_exercise, course } = cvData;
+      const items = chapters.map(c => {
+        const active = cvSelectedKey === `ch-${c.chapter_id}` ? ' active' : '';
+        const icon = c.lesson_completed
+          ? '<i class="fa-solid fa-circle-check" style="color:var(--accent)"></i>'
+          : '<i class="fa-regular fa-circle" style="color:var(--text-muted)"></i>';
+        return `<button type="button" class="cv-nav-item${active}" data-action="cv-select" data-key="ch-${c.chapter_id}">
+          <span class="n">${c.position}</span>${icon}<span>${escapeHtml(c.chapter_title)}</span>
+        </button>`;
+      }).join('');
+
+      let finalItem = '';
+      if (final_exercise) {
+        const active = cvSelectedKey === 'final' ? ' active' : '';
+        const icon = final_exercise.completed
+          ? '<i class="fa-solid fa-circle-check" style="color:var(--accent)"></i>'
+          : '<i class="fa-regular fa-circle" style="color:var(--text-muted)"></i>';
+        finalItem = `<button type="button" class="cv-nav-item${active}" data-action="cv-select" data-key="final">
+          <span class="n"><i class="fa-solid fa-flag-checkered"></i></span>${icon}<span>TP final</span>
+        </button>`;
+      }
+
+      const pct = Math.round(course.progress_pct || 0);
+      let certItem = '';
+      if (pct >= 100) {
+        const active = cvSelectedKey === 'certificate' ? ' active' : '';
+        certItem = `<button type="button" class="cv-nav-item${active}" data-action="cv-select" data-key="certificate">
+          <span class="n"><i class="fa-solid fa-award"></i></span><span>Certificat</span>
+        </button>`;
+      }
+
+      document.getElementById('cvNavList').innerHTML = items + finalItem + certItem;
+    }
+
+    function cvRenderHeader() {
+      const { course } = cvData;
+      document.getElementById('cvTitle').textContent = course.title;
+      document.getElementById('cvObjective').textContent = course.objective || course.description || '';
+      const pct = Math.round(course.progress_pct || 0);
+      const badge = document.getElementById('cvProgressBadge');
+      badge.className = pct >= 100 ? 'badge badge-green' : 'badge badge-amber';
+      badge.innerHTML = `<i class="fa-solid fa-chart-simple"></i> ${pct}% terminé`;
+    }
+
+    function cvChapterHtml(c) {
+      const btnLabel = c.lesson_completed ? 'Leçon lue' : 'Marquer la leçon comme lue';
+      const btnIcon = c.lesson_completed ? 'fa-check' : 'fa-circle-check';
+      return `
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card__head"><h3>${escapeHtml(c.chapter_title)}</h3>${cvLevelBadge(c.level)}</div>
+          <div class="card__body">
+            <div class="cv-lesson-block"><h5><i class="fa-solid fa-bullseye"></i> Objectif pédagogique</h5><div class="body"><p>${escapeHtml(c.lesson_objective || c.chapter_objective || '')}</p></div></div>
+            ${c.prerequisites ? `<div class="cv-lesson-block"><h5><i class="fa-solid fa-list-check"></i> Prérequis</h5><div class="body"><p>${escapeHtml(c.prerequisites)}</p></div></div>` : ''}
+            <div class="cv-lesson-block"><h5><i class="fa-solid fa-book-open"></i> Explication</h5><div class="body">${c.explanation.split('\n\n').map(p => `<p>${p}</p>`).join('')}</div></div>
+            ${c.football_example ? `<div class="cv-lesson-block"><h5><i class="fa-solid fa-futbol"></i> Exemple football</h5><div class="body"><p>${c.football_example}</p></div></div>` : ''}
+            ${c.coachboot_demo ? `<div class="cv-lesson-block"><h5><i class="fa-solid fa-display"></i> Démonstration CoachBoot</h5><div class="body"><p>${c.coachboot_demo}</p></div></div>` : ''}
+            ${c.key_takeaways ? `<div class="cv-lesson-block"><h5><i class="fa-solid fa-star"></i> À retenir</h5><div class="body"><p>${escapeHtml(c.key_takeaways)}</p></div></div>` : ''}
+            <button type="button" class="btn btn-primary btn-sm" id="cvCompleteLessonBtn" data-lesson-id="${c.lesson_id}" ${c.lesson_completed ? 'disabled' : ''}><i class="fa-solid ${btnIcon}"></i> ${btnLabel}</button>
+          </div>
+        </div>
+        ${c.quiz_id ? `<div class="card" id="cvQuizCard"><div class="card__head"><h3><i class="fa-solid fa-circle-question"></i> Quiz — ${escapeHtml(c.chapter_title)}</h3>${c.best_score != null ? `<span class="badge badge-blue">Meilleur score : ${c.best_score}%</span>` : ''}</div><div class="card__body" id="cvQuizBody"><p class="muted" style="font-size:12.5px;">Chargement des questions…</p></div></div>` : ''}
+      `;
+    }
+
+    async function cvLoadQuiz(quizId) {
+      const body = document.getElementById('cvQuizBody');
+      try {
+        const { questions } = await CB_API.getQuizQuestions(quizId);
+        body.innerHTML = questions.map((q, i) => `
+          <div class="cv-quiz-q" data-qid="${q.id}">
+            <p style="font-weight:600;font-size:13.5px;margin:0 0 8px;">${i + 1}. ${escapeHtml(q.question_text)}</p>
+            ${q.choices.map(ch => `
+              <label class="cv-quiz-choice"><input type="radio" name="q-${q.id}" value="${escapeHtml(ch.key)}"> ${escapeHtml(ch.text)}</label>
+            `).join('')}
+            <div class="cv-quiz-explain" style="display:none;"></div>
+          </div>
+        `).join('') + `<button type="button" class="btn btn-primary btn-sm" id="cvSubmitQuizBtn" data-quiz-id="${quizId}"><i class="fa-solid fa-paper-plane"></i> Vérifier mes réponses</button>`;
+      } catch (err) {
+        body.innerHTML = `<p class="muted" style="font-size:12.5px;">Impossible de charger le quiz : ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    function cvFinalExerciseHtml(e) {
+      return `
+        <div class="card">
+          <div class="card__head"><h3><i class="fa-solid fa-flag-checkered"></i> TP final — ${escapeHtml(e.title)}</h3>${e.completed ? '<span class="badge badge-green">Réalisé</span>' : '<span class="badge badge-grey">À faire</span>'}</div>
+          <div class="card__body">
+            <div class="body" style="font-size:13.5px;line-height:1.7;">${e.instructions.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+            <div class="field"><label>Tes notes / résultats (auto-évaluation)</label><textarea id="cvExerciseNotes" rows="4" placeholder="Décris ce que tu as fait et ce que tu en conclus…">${escapeHtml(e.notes || '')}</textarea></div>
+            <button type="button" class="btn btn-primary btn-sm" id="cvCompleteExerciseBtn" data-exercise-id="${e.id}"><i class="fa-solid fa-check"></i> ${e.completed ? 'Mettre à jour mes notes' : 'Marquer le TP comme réalisé'}</button>
+            <p class="muted" style="font-size:11.5px;margin-top:10px;">Ce TP est une auto-évaluation : CoachBoot ne note pas automatiquement une analyse ouverte, pour ne pas se faire passer pour une correction IA fictive.</p>
+          </div>
+        </div>`;
+    }
+
+    function cvCertificateHtml() {
+      const { course } = cvData;
+      return `
+        <div class="card">
+          <div class="card__body" style="text-align:center;padding:36px 18px;">
+            <i class="fa-solid fa-award" style="font-size:40px;color:var(--accent);margin-bottom:14px;"></i>
+            <h4 style="font-size:16px;margin-bottom:6px;">Module complété à 100%</h4>
+            <p style="font-size:13px;margin-bottom:16px;">${escapeHtml(course.title)}</p>
+            <button type="button" class="btn btn-primary" id="cvIssueCertBtn"><i class="fa-solid fa-award"></i> Obtenir mon certificat</button>
+            <div id="cvCertResult" style="margin-top:16px;"></div>
+          </div>
+        </div>`;
+    }
+
+    function cvSelect(key) {
+      cvSelectedKey = key;
+      cvRenderNav();
+      const content = document.getElementById('cvContent');
+      if (key === 'final') {
+        content.innerHTML = cvFinalExerciseHtml(cvData.final_exercise);
+      } else if (key === 'certificate') {
+        content.innerHTML = cvCertificateHtml();
+      } else {
+        const chapterId = key.replace('ch-', '');
+        const c = cvData.chapters.find(ch => ch.chapter_id === chapterId);
+        content.innerHTML = cvChapterHtml(c);
+        if (c.quiz_id) cvLoadQuiz(c.quiz_id);
+      }
+    }
+
+    async function cvRefresh(selectAfter) {
+      cvData = await CB_API.getCourseChapters(cvCourseId);
+      cvRenderHeader();
+      cvRenderNav();
+      if (selectAfter) cvSelect(selectAfter);
+    }
+
+    async function cvLoad() {
+      if (!cvCourseId) return cvSetMessage('Aucun module sélectionné. <a href="academy.html">Retour au catalogue</a>.');
+      if (!CB_API.isAuthenticated()) {
+        return cvSetMessage("Connectez-vous pour accéder au contenu réel de l'Academy (leçons, quiz notés, certificats). <a href=\"login.html\">Se connecter</a>");
+      }
+      try {
+        cvData = await CB_API.getCourseChapters(cvCourseId);
+      } catch (err) {
+        return cvSetMessage(`Impossible de charger ce module : ${escapeHtml(err.message)}`);
+      }
+      document.getElementById('cvMessage').hidden = true;
+      document.getElementById('cvBody').hidden = false;
+      cvRenderHeader();
+      const firstKey = cvData.chapters.length ? `ch-${cvData.chapters[0].chapter_id}` : 'final';
+      cvSelect(firstKey);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      cvLoad();
+
+      document.getElementById('cvNavList').addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-action="cv-select"]');
+        if (!btn) return;
+        cvSelect(btn.dataset.key);
+      });
+
+      document.getElementById('cvContent').addEventListener('click', async (event) => {
+        const completeLessonBtn = event.target.closest('#cvCompleteLessonBtn');
+        if (completeLessonBtn) {
+          completeLessonBtn.disabled = true;
+          try {
+            await CB_API.completeLesson(completeLessonBtn.dataset.lessonId);
+            await cvRefresh(cvSelectedKey);
+          } catch (err) {
+            completeLessonBtn.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+          }
+          return;
+        }
+
+        const submitQuizBtn = event.target.closest('#cvSubmitQuizBtn');
+        if (submitQuizBtn) {
+          const quizId = submitQuizBtn.dataset.quizId;
+          const answers = {};
+          document.querySelectorAll('.cv-quiz-q').forEach(qEl => {
+            const checked = qEl.querySelector('input[type=radio]:checked');
+            if (checked) answers[qEl.dataset.qid] = checked.value;
+          });
+          submitQuizBtn.disabled = true;
+          try {
+            const { score_pct, results } = await CB_API.submitQuiz(quizId, answers);
+            results.forEach(r => {
+              const qEl = document.querySelector(`.cv-quiz-q[data-qid="${r.question_id}"]`);
+              if (!qEl) return;
+              qEl.classList.add(r.is_correct ? 'correct' : 'incorrect');
+              qEl.querySelectorAll('input[type=radio]').forEach(inp => { inp.disabled = true; });
+              const explain = qEl.querySelector('.cv-quiz-explain');
+              explain.style.display = 'block';
+              explain.innerHTML = `<b>${r.is_correct ? 'Correct' : 'Incorrect'}</b> — ${escapeHtml(r.explanation || '')}`;
+            });
+            submitQuizBtn.remove();
+            Swal.fire({ icon: score_pct >= 70 ? 'success' : 'info', title: `Score : ${score_pct}%`, text: 'Les réponses correctes sont maintenant affichées.', confirmButtonColor: '#2C8F5E' });
+          } catch (err) {
+            submitQuizBtn.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+          }
+          return;
+        }
+
+        const completeExerciseBtn = event.target.closest('#cvCompleteExerciseBtn');
+        if (completeExerciseBtn) {
+          const notes = document.getElementById('cvExerciseNotes').value;
+          completeExerciseBtn.disabled = true;
+          try {
+            await CB_API.completeExercise(completeExerciseBtn.dataset.exerciseId, notes);
+            await cvRefresh('final');
+          } catch (err) {
+            completeExerciseBtn.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+          }
+          return;
+        }
+
+        const issueCertBtn = event.target.closest('#cvIssueCertBtn');
+        if (issueCertBtn) {
+          issueCertBtn.disabled = true;
+          try {
+            const cert = await CB_API.issueCertificate(cvCourseId);
+            document.getElementById('cvCertResult').innerHTML = `<span class="badge badge-green" style="font-size:13px;padding:8px 14px;"><i class="fa-solid fa-check"></i> Certificat délivré le ${new Date(cert.issued_date).toLocaleDateString('fr-FR')}</span> <a href="certificates.html" style="margin-left:10px;">Voir mes certificats <i class="fa-solid fa-arrow-right"></i></a>`;
+          } catch (err) {
+            issueCertBtn.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+          }
+          return;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

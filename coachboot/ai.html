@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligence artificielle · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="ai">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Innovation</span>
+            <h1>Intelligence artificielle</h1>
+            <p>Recommandations et prédictions générées par les modèles CoachBoot IA</p>
+          </div>
+          
+        </div>
+        
+    <div class="grid grid-3" style="margin-bottom:20px;">
+      <div class="card"><div class="card__body">
+        <div class="ic" style="width:38px;height:38px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h4 style="font-size:14px;">Risque de blessure</h4>
+        <p style="font-size:12.5px;">1 joueur signalé à risque élevé cette semaine. Charge d'entraînement recommandée : -20%.</p>
+      </div></div>
+      <div class="card"><div class="card__body">
+        <div class="ic" style="width:38px;height:38px;border-radius:9px;background:var(--info-soft);color:var(--info);display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><i class="fa-solid fa-chess"></i></div>
+        <h4 style="font-size:14px;">Suggestion tactique</h4>
+        <p style="font-size:12.5px;">Contre FC Nord, le modèle recommande un pressing haut : 68% de pertes de balle adverses en zone médiane.</p>
+      </div></div>
+      <div class="card"><div class="card__body">
+        <div class="ic" style="width:38px;height:38px;border-radius:9px;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><i class="fa-solid fa-star"></i></div>
+        <h4 style="font-size:14px;">Talent détecté</h4>
+        <p style="font-size:12.5px;">E. Marchetti (19 ans) présente un profil de progression proche des standards professionnels.</p>
+      </div></div>
+    </div>
+    <div class="card" >
+    <div class="card__head"><h3>Prédiction de performance — 5 prochains matchs</h3><span class="muted">Intervalle de confiance 90%</span></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="aiPrediction"></canvas></div>
+    </div>
+    
+  </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => CB.line('aiPrediction', ['J23','J24','J25','J26','J27'], [{label:'Probabilité de victoire %', data:[58,62,49,71,55]}]));</script>
+</body>
+</html>

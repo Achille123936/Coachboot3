@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plateforme de performance football · CoachBoot Enterprise</title>
+  <meta name="description" content="CoachBoot Enterprise — plateforme d'analyse de performance pour clubs, académies et fédérations.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="">
+
+  <header class="navbar-public">
+    <div class="wrap">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#06170F;font-family:var(--font-display);font-weight:700;">CB</div>
+        <b style="font-family:var(--font-display);font-size:17px;">CoachBoot <span style="color:var(--accent)">Enterprise</span></b>
+      </div>
+      <nav>
+        <a href="#plateforme">Plateforme</a>
+        <a href="#cellules">Cellules d'analyse</a>
+        <a href="#roles">Rôles</a>
+        <a href="#formation">Formation</a>
+      </nav>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+        <button class="theme-toggle" id="themeToggle" aria-label="Mode sombre/clair"><span class="knob"><i class="fa-solid fa-moon"></i></span></button>
+        <a href="login.html" class="btn btn-outline btn-sm">Connexion</a>
+        <a href="register.html" class="btn btn-primary btn-sm">Créer un compte</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero turf-texture">
+    <div class="wrap">
+      <div data-aos="fade-right">
+        <span class="badge badge-green" style="margin-bottom:16px;"><i class="fa-solid fa-shield-halved"></i> Niveau FIFA / UEFA</span>
+        <h1>La donnée qui fait gagner <em>chaque match</em>, du terrain au bureau.</h1>
+        <p class="lede">CoachBoot Enterprise centralise l'effectif, la performance, le scouting, la vidéo et la santé de vos joueurs dans une seule plateforme — pensée pour les clubs, académies et fédérations.</p>
+        <div class="cta-row">
+          <a href="dashboard.html" class="btn btn-primary">Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="#plateforme" class="btn btn-outline">Découvrir la plateforme</a>
+        </div>
+        <div class="stat-ticker" style="margin-top:34px;max-width:520px;">
+          <div class="stat-ticker__item"><b>40+</b> modules</div>
+          <div class="stat-ticker__item"><b>20</b> cellules d'analyse</div>
+          <div class="stat-ticker__item"><b>10</b> rôles dédiés</div>
+        </div>
+      </div>
+      <div data-aos="fade-left" data-aos-delay="100">
+        <div class="pitch-panel">
+          <div class="lines"></div>
+          <div style="position:relative;z-index:1;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+              <b style="font-family:var(--font-display);">Match en direct</b>
+              <span class="badge" style="background:rgba(255,255,255,.14);color:#fff;"><i class="fa-solid fa-circle" style="color:#F0707A;font-size:8px;"></i> 67’</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-display);font-size:26px;font-weight:700;margin-bottom:22px;">
+              <span>CoachBoot FC</span><span style="color:var(--accent-2)">2 – 1</span><span>FC Nord</span>
+            </div>
+            <div class="grid grid-3" style="gap:10px;">
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;text-align:center;"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">61%</div><div style="font-size:10px;opacity:.7;">Possession</div></div>
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;text-align:center;"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">2.34</div><div style="font-size:10px;opacity:.7;">xG</div></div>
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;text-align:center;"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;">412</div><div style="font-size:10px;opacity:.7;">Passes</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="plateforme">
+    <div class="wrap">
+      <div class="section-head" data-aos="fade-up">
+        <span class="eyebrow">Plateforme</span>
+        <h2>Tout ce dont un staff professionnel a besoin</h2>
+      </div>
+      <div class="grid grid-4">
+        <div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-chart-line"></i></div><h4>Analyse de performance</h4><p>Radar, xG, xA, pressing, comparaisons multi-saisons.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-video"></i></div><h4>Analyse vidéo</h4><p>Lecteur avec annotations, séquences et export.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-satellite-dish"></i></div><h4>Suivi GPS</h4><p>Distance, sprints, charge et fatigue en temps réel.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-binoculars"></i></div><h4>Scouting</h4><p>Base de profils, notation et suivi des prospects.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-kit-medical"></i></div><h4>Suivi médical</h4><p>Détection du risque de blessure et retour au jeu.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-brain"></i></div><h4>Intelligence artificielle</h4><p>Prédictions de performance et recommandations.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-graduation-cap"></i></div><h4>Formation</h4><p>Cours, quiz et certificats pour le staff technique.</p></div><div class="feature-card" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-users-gear"></i></div><h4>Multi-rôles</h4><p>Un tableau de bord dédié pour chaque fonction du club.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="cellules" style="background:var(--bg-sunken);">
+    <div class="wrap">
+      <div class="section-head" data-aos="fade-up">
+        <span class="eyebrow">20 cellules d'analyse</span>
+        <h2>Une cellule dédiée pour chaque dimension du jeu</h2>
+      </div>
+      <div class="grid grid-4">
+        <div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Tactique</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Technique</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Physique</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Mentale</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Médicale</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Nutritionnelle</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> GPS</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Vidéo</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Gardiens</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Attaquants</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Milieux</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Défenseurs</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> IA</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Compétitions</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Entraînements</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Scouting</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Progression</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Risque blessure</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Comparaison joueurs</div><div class="role-chip" data-aos="zoom-in"><i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Prédiction</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="roles">
+    <div class="wrap">
+      <div class="section-head" data-aos="fade-up">
+        <span class="eyebrow">Tableaux de bord par rôle</span>
+        <h2>Chacun voit exactement ce dont il a besoin</h2>
+      </div>
+      <div class="grid grid-4">
+        <a href="dashboard-president.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-user-tie"></i></div><h4>Président</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-technical-director.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-clipboard-user"></i></div><h4>Directeur technique</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-head-coach.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-whistle"></i></div><h4>Entraîneur principal</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-fitness-coach.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-dumbbell"></i></div><h4>Préparateur physique</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-goalkeeper-coach.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-hands-holding-circle"></i></div><h4>Entraîneur des gardiens</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-video-analyst.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-clapperboard"></i></div><h4>Analyste vidéo</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-data-analyst.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-chart-simple"></i></div><h4>Data Analyst</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-player.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-shoe-prints"></i></div><h4>Joueur</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-parent.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-people-roof"></i></div><h4>Parent</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a><a href="dashboard-federation.html" class="feature-card" style="display:block;" data-aos="fade-up"><div class="ic"><i class="fa-solid fa-landmark"></i></div><h4>Fédération</h4><p>Ouvrir le tableau de bord <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i></p></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="formation" style="background:var(--bg-sunken);">
+    <div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;">
+      <div data-aos="fade-right">
+        <span class="eyebrow">Formation continue</span>
+        <h2>Faites monter votre staff en compétence</h2>
+        <p>Cours licenciés, quiz interactifs et certificats intégrés directement à la plateforme, pour que chaque membre du staff progresse en même temps que l'équipe.</p>
+        <a href="courses.html" class="btn btn-primary">Voir les cours <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="grid grid-2" data-aos="fade-left">
+        <div class="card"><div class="card__body"><span class="badge badge-blue">Intermédiaire</span><h4 style="margin-top:10px;font-size:14px;">Licence B — Tactique collective</h4><div class="progress"><span style="width:100%;"></span></div><div class="foot" style="margin-top:8px;font-size:11px;color:var(--text-muted)">100% terminé</div></div></div><div class="card"><div class="card__body"><span class="badge badge-blue">Avancé</span><h4 style="margin-top:10px;font-size:14px;">Préparation physique moderne</h4><div class="progress"><span style="width:65%;"></span></div><div class="foot" style="margin-top:8px;font-size:11px;color:var(--text-muted)">65% terminé</div></div></div><div class="card"><div class="card__body"><span class="badge badge-blue">Avancé</span><h4 style="margin-top:10px;font-size:14px;">Analyse vidéo avec données GPS</h4><div class="progress"><span style="width:30%;"></span></div><div class="foot" style="margin-top:8px;font-size:11px;color:var(--text-muted)">30% terminé</div></div></div><div class="card"><div class="card__body"><span class="badge badge-blue">Intermédiaire</span><h4 style="margin-top:10px;font-size:14px;">Psychologie du sport et leadership</h4><div class="progress"><span style="width:0%;"></span></div><div class="foot" style="margin-top:8px;font-size:11px;color:var(--text-muted)">0% terminé</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap" style="text-align:center;" data-aos="zoom-in">
+      <h2 style="font-size:30px;">Prêt à professionnaliser votre suivi de performance ?</h2>
+      <p style="max-width:520px;margin:0 auto 22px;">Connectez-vous à la démonstration pour explorer les 40+ modules de CoachBoot Enterprise.</p>
+      <div class="cta-row" style="justify-content:center;">
+        <a href="register.html" class="btn btn-primary">Créer un compte</a>
+        <a href="login.html" class="btn btn-outline">Se connecter</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="app-footer__brand">
+        <span class="app-footer__mark">CB</span>
+        <span>© 2026 CoachBoot Enterprise <span class="app-footer__sep">·</span> v1.0 <span class="app-footer__sep">·</span> Plateforme de démonstration</span>
+      </div>
+      <nav class="app-footer__links">
+        <a href="register.html"><i class="fa-solid fa-user-plus"></i> Créer un compte</a>
+        <a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</a>
+        <a href="mailto:support@coachboot.app"><i class="fa-solid fa-life-ring"></i> Support</a>
+      </nav>
+    </div>
+  </footer>
+  
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('coachboot-theme', next);
+    });
+    document.addEventListener('DOMContentLoaded', () => window.AOS && AOS.init({ duration: 600, once: true }));
+  </script>
+</body>
+</html>

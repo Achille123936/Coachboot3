@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse des performances · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="analytics">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h1>Analyse des performances</h1>
+            <p>Vue centralisée — accès rapide aux 20 cellules d'analyse spécialisées</p>
+          </div>
+          
+        </div>
+        
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">xG saison</span>
+    <div class="value"><span>38.4</span> <small class="up"><i class="fa-solid fa-arrow-up"></i> +3.1</small></div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">xA saison</span>
+    <div class="value"><span>24.9</span> <small class="up"><i class="fa-solid fa-arrow-up"></i> +1.6</small></div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Possession moyenne</span>
+    <div class="value"><span>55</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">%</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Passes réussies</span>
+    <div class="value"><span>84</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">%</span> </div>
+    
+  </div></div></div>
+    <div class="grid grid-2" style="margin-bottom:20px;">
+      <div class="card" >
+    <div class="card__head"><h3>xG vs Buts réels — saison</h3></div>
+    <div class="card__body">
+      <div style="height:270px;"><canvas id="xgTrend"></canvas></div>
+    </div>
+    
+  </div>
+      <div class="card" >
+    <div class="card__head"><h3>Possession — 10 derniers matchs</h3></div>
+    <div class="card__body">
+      <div style="height:270px;"><canvas id="possessionTrend"></canvas></div>
+    </div>
+    
+  </div>
+    </div>
+    <div class="grid grid-4">
+      <a href="cell-tactical.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-chess-board"></i></div><h4>Tactique</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-technical.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-boot"></i></div><h4>Technique</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-physical.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-heart-pulse"></i></div><h4>Physique</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-mental.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-face-smile"></i></div><h4>Mentale</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-medical.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-stethoscope"></i></div><h4>Médicale</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-nutrition.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-carrot"></i></div><h4>Nutritionnelle</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-gps.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-location-crosshairs"></i></div><h4>GPS</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-video.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-film"></i></div><h4>Vidéo</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-goalkeepers.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-shield-halved"></i></div><h4>Gardiens</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-forwards.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-bolt"></i></div><h4>Attaquants</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-midfielders.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-arrows-left-right"></i></div><h4>Milieux</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-defenders.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-shield"></i></div><h4>Défenseurs</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-ai.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-robot"></i></div><h4>IA</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-competitions.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-trophy"></i></div><h4>Compétitions</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-trainings.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-list-check"></i></div><h4>Entraînements</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-scouting.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-magnifying-glass"></i></div><h4>Scouting</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-progression.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-arrow-trend-up"></i></div><h4>Progression</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-injury-risk.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-triangle-exclamation"></i></div><h4>Risque blessure</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-comparison.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-code-compare"></i></div><h4>Comparaison</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a><a href="cell-prediction.html" class="feature-card" style="display:block;"><div class="ic"><i class="fa-solid fa-wand-magic-sparkles"></i></div><h4>Prédiction</h4><p style="font-size:12px;">Ouvrir la cellule <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></p></a>
+    </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    CB.line('xgTrend', ['J14','J15','J16','J17','J18','J19','J20','J21','J22'], [{label:'xG', data:[1.4,1.8,1.1,2.0,1.6,2.3,1.2,1.9,2.1]},{label:'Buts réels', data:[1,2,1,2,1,3,0,2,2]}]);
+    CB.apexArea('#possessionTrend', ['J13','J14','J15','J16','J17','J18','J19','J20','J21','J22'], [{name:'Possession %', data:[52,55,49,58,54,61,50,57,53,59]}]);
+  });</script>
+</body>
+</html>

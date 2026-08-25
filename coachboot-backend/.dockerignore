@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+*.log
+npm-debug.log*
+ml/models/
+ml/uploads/
+test/
+.git/
+.gitignore

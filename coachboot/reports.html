@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapports · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="reports">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Documentation</span>
+            <h1>Rapports</h1>
+            <p>Génération et export de rapports professionnels</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="reportsSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button type="button" class="btn btn-primary btn-sm" id="addReportBtn"><i class="fa-solid fa-plus"></i> Nouveau rapport</button></div>
+        </div>
+
+    <div class="card">
+    <div class="card__head"><h3>Tous les rapports</h3><span class="muted" id="reportsCount">5 documents</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="reportsTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Titre</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="reportsTableBody"><tr><td>Rapport de performance — Journée 22</td><td><span class="badge badge-blue">Match</span></td><td>26 Juil. 2026</td><td><button class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></button> <button class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button></td></tr><tr><td>Bilan physique mensuel — Juillet</td><td><span class="badge badge-blue">Physique</span></td><td>31 Juil. 2026</td><td><button class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></button> <button class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button></td></tr><tr><td>Rapport de scouting — Zone Nord</td><td><span class="badge badge-blue">Scouting</span></td><td>22 Juil. 2026</td><td><button class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></button> <button class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button></td></tr><tr><td>Bilan médical trimestriel</td><td><span class="badge badge-blue">Médical</span></td><td>15 Juil. 2026</td><td><button class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></button> <button class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button></td></tr><tr><td>Rapport tactique — vs FC Nord</td><td><span class="badge badge-blue">Tactique</span></td><td>02 Août 2026</td><td><button class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></button> <button class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    let reportsCache = [];
+
+    function renderReportRow(r) {
+      return `<tr>
+        <td>${escapeHtml(r.title)}</td>
+        <td><span class="badge badge-blue">${escapeHtml(r.type)}</span></td>
+        <td>${new Date(r.report_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+        <td>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="download-report" data-id="${r.id}" title="Télécharger en PDF"><i class="fa-solid fa-file-pdf"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="download-report" data-id="${r.id}" data-format="excel" title="Télécharger en Excel"><i class="fa-solid fa-file-excel"></i></button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="view-report" data-id="${r.id}" title="Aperçu"><i class="fa-solid fa-eye"></i></button>
+        </td>
+      </tr>`;
+    }
+
+    function initReportsDataTable() {
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+        if ($.fn.DataTable.isDataTable('#reportsTable')) $('#reportsTable').DataTable().destroy();
+        $('#reportsTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false });
+      }
+    }
+
+    async function loadReportsFromApi() {
+      const badge = document.getElementById('reportsSourceBadge');
+      if (!CB_API.isAuthenticated()) { initReportsDataTable(); return; } // pas de jeton -> l'appel échouerait (401) à coup sûr
+      try {
+        reportsCache = await CB_API.getReports();
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${reportsCache.length})`;
+        document.getElementById('reportsCount').textContent = `${reportsCache.length} document${reportsCache.length > 1 ? 's' : ''}`;
+        document.getElementById('reportsTableBody').innerHTML = reportsCache.length
+          ? reportsCache.map(renderReportRow).join('')
+          : '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Aucun rapport pour le moment.</td></tr>';
+      } catch { /* reste sur les lignes de démonstration déjà rendues dans le HTML */ }
+      initReportsDataTable();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReportsFromApi();
+
+      document.getElementById('addReportBtn').addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Nouveau rapport',
+          html:
+            '<input id="swal-title" class="swal2-input" placeholder="Titre du rapport">' +
+            '<select id="swal-type" class="swal2-input"><option>Match</option><option>Physique</option><option>Scouting</option><option>Médical</option><option>Tactique</option></select>' +
+            '<input id="swal-date" type="date" class="swal2-input" value="' + new Date().toISOString().slice(0, 10) + '">',
+          confirmButtonText: 'Créer', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            title: document.getElementById('swal-title').value,
+            type: document.getElementById('swal-type').value,
+            reportDate: document.getElementById('swal-date').value,
+          }),
+        });
+        if (!formValues || !formValues.title) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour créer un rapport via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createReport(formValues);
+          await Swal.fire({ icon: 'success', title: 'Rapport créé', confirmButtonColor: '#2C8F5E' });
+          loadReportsFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+
+      document.getElementById('reportsTableBody').addEventListener('click', async (event) => {
+        const downloadBtn = event.target.closest('[data-action="download-report"]');
+        if (downloadBtn) {
+          if (!CB_API.isAuthenticated()) {
+            return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour exporter un rapport via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+          }
+          const format = downloadBtn.dataset.format || 'pdf';
+          const report = reportsCache.find(r => r.id === downloadBtn.dataset.id);
+          try {
+            await CB_API.downloadReportExport(downloadBtn.dataset.id, format, report ? `${report.title}.${format === 'excel' ? 'xlsx' : 'pdf'}` : undefined);
+          } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+          }
+          return;
+        }
+        const viewBtn = event.target.closest('[data-action="view-report"]');
+        if (viewBtn) {
+          const report = reportsCache.find(r => r.id === viewBtn.dataset.id);
+          if (!report) return;
+          Swal.fire({
+            title: report.title,
+            html: `<div style="text-align:left;font-size:13px;">
+              <p><b>Type :</b> ${escapeHtml(report.type)}</p>
+              <p><b>Date :</b> ${new Date(report.report_date).toLocaleDateString('fr-FR')}</p>
+              <p><b>Auteur :</b> ${escapeHtml(report.created_by_name || 'Non renseigné')}</p>
+              <p><b>Créé le :</b> ${new Date(report.created_at).toLocaleString('fr-FR')}</p>
+            </div>`,
+            confirmButtonColor: '#2C8F5E',
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

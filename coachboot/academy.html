@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoachBoot IA Academy · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .ay-pipeline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-muted); }
+    .ay-pipeline .step { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; white-space: nowrap; }
+    .ay-pipeline .step.decision { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+    .ay-pipeline i.fa-arrow-right { font-size: 10px; }
+    .ay-module-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; background: var(--bg-sunken); font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+    .ay-module-num.final { background: var(--violet-soft); color: var(--violet); }
+  </style>
+</head>
+<body data-page="academy">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Formation</span>
+            <h1>🎓 CoachBoot IA — Football Intelligence Academy</h1>
+            <p>6 modules + un projet final pour apprendre à collecter, analyser, entraîner et interpréter les données football avec CoachBoot.</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="academySourceBadge"><i class="fa-solid fa-flask"></i> Démo</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;"><div class="card__body">
+          <h4 style="font-size:13px;margin-bottom:10px;"><i class="fa-solid fa-compass"></i> La règle d'or de l'Academy</h4>
+          <div class="ay-pipeline">
+            <span class="step">Donnée</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Métrique</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Observation</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Analyse contextuelle</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step decision">Décision du coach</span>
+          </div>
+          <p class="muted" style="font-size:12px;margin:10px 0 0;">L'IA de CoachBoot est un outil d'aide à la décision, jamais un remplacement du jugement du staff technique. Chaque module rappelle explicitement les limites de ce que les données permettent réellement d'affirmer.</p>
+        </div></div>
+
+        <div class="grid grid-3" id="academyGrid"></div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script>
+    const AY_LEVEL_BADGE = { 'Débutant': 'green', 'Intermédiaire': 'amber', 'Avancé': 'red' };
+
+    const AY_DEMO_MODULES = [
+      { module_number: 1, title: "CoachBoot IA — Module 1 : Entraîner l'IA Football", level: 'Intermédiaire', duration_label: '3h', description: "Nettoyage, normalisation, feature engineering, entraînement RandomForest et évaluation sur des données jamais vues.", progress_pct: 40 },
+      { module_number: 2, title: 'CoachBoot IA — Module 2 : Analyse intelligente des matchs', level: 'Intermédiaire', duration_label: '3h30', description: "Analyse individuelle, physique, GPS et collective d'un match, jusqu'au rapport IA.", progress_pct: 0 },
+      { module_number: 3, title: 'CoachBoot IA — Module 3 : Scouting intelligent', level: 'Intermédiaire', duration_label: '3h', description: "Profil joueur, classement, comparaison et rapport de scouting.", progress_pct: 0 },
+      { module_number: 4, title: 'CoachBoot IA — Module 4 : Prévision performance & fatigue', level: 'Avancé', duration_label: '3h', description: "Prédiction de performance et de risque de fatigue — jamais un diagnostic médical.", progress_pct: 0 },
+      { module_number: 5, title: 'CoachBoot IA — Module 5 : Assistant IA Coach', level: 'Débutant', duration_label: '2h', description: "Utiliser l'assistant conversationnel connecté aux données réelles du club, et repérer une hallucination.", progress_pct: 0 },
+      { module_number: 6, title: 'CoachBoot IA — Module 6 : Analyse tactique IA', level: 'Avancé', duration_label: '3h', description: "Positionnement, occupation de l'espace, transitions et formations — avec prudence sur les limites des données.", progress_pct: 0 },
+      { module_number: 7, title: 'CoachBoot IA — Projet Final : Football Intelligence Academy', level: 'Avancé', duration_label: '4h', description: "Mobilise les 6 modules sur un cas complet, du jeu de données au rapport final.", progress_pct: 0 },
+    ];
+
+    function ayActionLabel(pct) {
+      if (pct >= 100) return 'Revoir';
+      if (pct > 0) return 'Continuer';
+      return 'Commencer';
+    }
+
+    function renderModuleCard(m, live) {
+      const pct = Math.round(m.progress_pct || 0);
+      const isFinal = m.module_number === 7;
+      const badgeKind = AY_LEVEL_BADGE[m.level] || 'grey';
+      const numClass = isFinal ? 'ay-module-num final' : 'ay-module-num';
+      const numLabel = isFinal ? '<i class="fa-solid fa-flag-checkered"></i>' : m.module_number;
+      const linkAttrs = live
+        ? `href="course-viewer.html#course=${encodeURIComponent(m.id)}"`
+        : `href="#" data-action="academy-locked"`;
+      return `
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <span class="${numClass}">${numLabel}</span>
+              <span class="badge badge-${badgeKind}">${escapeHtml(m.level)}</span>
+              ${isFinal ? '<span class="badge badge-violet">Projet Final</span>' : ''}
+            </div>
+            <h4 style="margin:0 0 6px;font-size:15px;">${escapeHtml(m.title.replace(/^CoachBoot IA — /, ''))}</h4>
+            <p style="font-size:12.5px;margin-bottom:10px;min-height:36px;">${escapeHtml(m.description || m.objective || '')}</p>
+            <p style="font-size:12px;margin-bottom:12px;color:var(--text-muted);"><i class="fa-regular fa-clock"></i> ${escapeHtml(m.duration_label || '—')}</p>
+            <div class="progress"><span style="width:${pct}%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)">
+              <span>${pct}% terminé</span>
+              <a ${linkAttrs}>${ayActionLabel(pct)} <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function loadAcademyFromApi() {
+      const badge = document.getElementById('academySourceBadge');
+      const grid = document.getElementById('academyGrid');
+      if (!CB_API.isAuthenticated()) {
+        badge.className = 'badge badge-grey';
+        badge.innerHTML = '<i class="fa-solid fa-flask"></i> Démo';
+        grid.innerHTML = AY_DEMO_MODULES.map(m => renderModuleCard(m, false)).join('');
+        return;
+      }
+      try {
+        const courses = await CB_API.getCourses();
+        const modules = courses.filter(c => c.module_number).sort((a, b) => a.module_number - b.module_number);
+        if (!modules.length) throw new Error('Aucun module Academy en base — lancez node db/seed-academy.js côté backend.');
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${modules.length})`;
+        grid.innerHTML = modules.map(m => renderModuleCard(m, true)).join('');
+      } catch {
+        badge.className = 'badge badge-grey';
+        badge.innerHTML = '<i class="fa-solid fa-flask"></i> Démo';
+        grid.innerHTML = AY_DEMO_MODULES.map(m => renderModuleCard(m, false)).join('');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAcademyFromApi();
+      document.getElementById('academyGrid').addEventListener('click', (event) => {
+        const link = event.target.closest('[data-action="academy-locked"]');
+        if (!link) return;
+        event.preventDefault();
+        Swal.fire({ icon: 'info', title: 'Connexion requise', text: "Connectez-vous pour accéder au contenu réel de l'Academy (leçons, quiz notés, certificats).", confirmButtonColor: '#2C8F5E' });
+      });
+    });
+  </script>
+</body>
+</html>

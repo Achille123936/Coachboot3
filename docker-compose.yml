@@ -1,0 +1,67 @@
+# CoachBoot Enterprise — orchestration complète (frontend + backend + PostgreSQL).
+#
+# Démarrage :
+#   1. cp .env.example .env   (puis éditer JWT_SECRET au minimum)
+#   2. docker compose up --build
+#   3. Une fois "postgres" et "backend" en bonne santé, peupler les données de
+#      démonstration (étape volontairement séparée du démarrage — voir schema.sql
+#      qui, lui, s'applique automatiquement au premier démarrage de postgres) :
+#        docker compose exec backend npm run db:seed
+#        docker compose exec backend node db/seed-academy.js
+#   4. Frontend : http://localhost:8080 — Backend : http://localhost:4000/api/health
+#
+# Le pipeline CoachBoot IA (entraînement de modèles, ml/train.py) nécessite
+# Python côté backend, volontairement absent de l'image (voir coachboot-backend/
+# Dockerfile) — /api/ml/* répond une erreur claire plutôt qu'un plantage tant
+# que l'image n'est pas étendue avec Python.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: coachboot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - coachboot_pgdata:/var/lib/postgresql/data
+      # Postgres exécute automatiquement les scripts de ce dossier au tout
+      # premier démarrage (volume de données vide) — le schéma applicatif
+      # est donc prêt sans étape manuelle. Les seeds restent volontairement
+      # à part (ce ne sont pas des .sql, et ne doivent pas tourner en prod).
+      - ./coachboot-backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coachboot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./coachboot-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: coachboot
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET est requis — copier .env.example vers .env et le renseigner}
+      NODE_ENV: production
+      PORT: 4000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PYTHON_BIN: ${PYTHON_BIN:-}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./coachboot
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  coachboot_pgdata:

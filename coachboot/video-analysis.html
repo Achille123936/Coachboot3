@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse vidéo — Télestration · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .va-video-wrap { position: relative; background: #06170F; border-radius: var(--radius); overflow: hidden; }
+    .va-video-wrap video { display: block; width: 100%; max-height: 520px; background: #000; }
+    .va-video-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .va-video-wrap canvas.va-cursor-draw { cursor: crosshair; }
+    .va-video-wrap canvas.va-cursor-select { cursor: pointer; }
+    .va-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg-elevated); }
+    /* [hidden] et une classe qui fixe display:flex ont la même spécificité —
+       l'ordre de déclaration (cette feuille après le style navigateur) ferait
+       gagner display:flex sans ce !important, laissant la barre visible même
+       "cachée". Idem pour #vaEditActions, qui réutilise .page-head__actions. */
+    .va-toolbar[hidden], #vaEditActions[hidden] { display: none !important; }
+    .va-tool-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13.5px; transition: background .15s, color .15s; }
+    .va-tool-btn:hover { background: var(--bg-sunken); }
+    .va-tool-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .va-toolbar .sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 4px; }
+    .va-toolbar input[type="color"] { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: var(--bg-elevated); cursor: pointer; }
+    .va-toolbar input[type="range"] { width: 80px; }
+    .va-save-status { font-size: 11.5px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+    .va-anno-row { cursor: pointer; }
+    .va-anno-row:hover { background: var(--bg-sunken); }
+    .va-anno-row.selected { background: var(--accent-soft); }
+    .va-empty-state { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    .va-new-clip-panel { display: none; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding: 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+    .va-new-clip-panel.open { display: flex; }
+    .va-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+    .va-field input[type="text"], .va-field input[type="url"] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; min-width: 200px; }
+  </style>
+</head>
+<body data-page="video-analysis">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h1>Analyse vidéo — Télestration</h1>
+            <p>Dessinez flèches, zones et trajectoires directement sur la vidéo, horodatées et sauvegardées</p>
+          </div>
+          <div class="page-head__actions" id="vaEditActions" hidden>
+            <button class="btn btn-primary btn-sm" id="vaNewClipBtn" type="button"><i class="fa-solid fa-plus"></i> Nouveau clip</button>
+          </div>
+        </div>
+
+        <div id="vaAuthGate" class="card" hidden>
+          <div class="va-empty-state">
+            <i class="fa-solid fa-lock" style="font-size:26px;margin-bottom:10px;display:block;"></i>
+            Connectez-vous pour accéder à la télestration vidéo (clips et annotations propres au club, sauvegardés côté serveur).
+            <div style="margin-top:14px;"><a href="login.html" class="btn btn-primary btn-sm">Se connecter</a></div>
+          </div>
+        </div>
+
+        <div id="vaApp" hidden>
+          <div class="va-new-clip-panel" id="vaNewClipPanel">
+            <div class="va-field">
+              <label>Titre du clip</label>
+              <input type="text" id="vaNewTitle" placeholder="Ex. Pressing haut — 1ère mi-temps">
+            </div>
+            <div class="va-field">
+              <label>URL vidéo directement lisible (MP4/WebM/HLS)</label>
+              <input type="url" id="vaNewUrl" placeholder="https://…">
+            </div>
+            <div class="va-field">
+              <label>ou fichier local (jamais envoyé au serveur)</label>
+              <input type="file" id="vaNewFile" accept="video/*">
+            </div>
+            <div class="va-field">
+              <label>Joueur (optionnel)</label>
+              <select id="vaNewPlayer"><option value="">—</option></select>
+            </div>
+            <div class="va-field">
+              <label title="Heure réelle à laquelle l'enregistrement a commencé — nécessaire pour relier une annotation à une vraie position GPS">Ancrage réel (pour le GPS)</label>
+              <input type="datetime-local" id="vaNewAnchor">
+            </div>
+            <button class="btn btn-primary btn-sm" id="vaCreateClipBtn" type="button"><i class="fa-solid fa-check"></i> Créer</button>
+            <button class="btn btn-outline btn-sm" id="vaCancelClipBtn" type="button">Annuler</button>
+          </div>
+
+          <div class="grid grid-12">
+            <div style="grid-column:span 8;">
+              <div class="card">
+                <div class="card__head">
+                  <h3 id="vaClipTitle">Aucun clip sélectionné</h3>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <select id="vaClipSelect" style="max-width:220px;"></select>
+                    <button class="va-tool-btn" id="vaDeleteClipBtn" title="Supprimer ce clip (et ses annotations)" hidden><i class="fa-solid fa-trash-can"></i></button>
+                  </div>
+                </div>
+                <div class="card__body" style="padding:0;">
+                  <div class="va-video-wrap" id="vaVideoWrap">
+                    <video id="vaVideo" controls playsinline></video>
+                    <canvas id="vaCanvas"></canvas>
+                  </div>
+                  <div class="va-toolbar" id="vaToolbar" hidden>
+                    <button class="va-tool-btn" data-tool="select" title="Sélectionner"><i class="fa-solid fa-arrow-pointer"></i></button>
+                    <button class="va-tool-btn" data-tool="arrow" title="Flèche"><i class="fa-solid fa-arrow-right-long"></i></button>
+                    <button class="va-tool-btn" data-tool="circle" title="Cercle"><i class="fa-regular fa-circle"></i></button>
+                    <button class="va-tool-btn" data-tool="line" title="Ligne"><i class="fa-solid fa-slash"></i></button>
+                    <button class="va-tool-btn" data-tool="rectangle" title="Zone / rectangle"><i class="fa-regular fa-square"></i></button>
+                    <button class="va-tool-btn" data-tool="freehand" title="Dessin libre"><i class="fa-solid fa-pencil"></i></button>
+                    <button class="va-tool-btn" data-tool="text" title="Texte"><i class="fa-solid fa-font"></i></button>
+                    <button class="va-tool-btn" data-tool="player_marker" title="Marker joueur (#10, CB…)"><i class="fa-solid fa-hashtag"></i></button>
+                    <div class="sep"></div>
+                    <input type="color" id="vaColor" value="#2C8F5E" title="Couleur">
+                    <input type="range" id="vaThickness" min="1" max="10" value="3" title="Épaisseur">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted);" title="La flèche se déplace d'une position de départ vers une position d'arrivée entre deux instants">
+                      <input type="checkbox" id="vaAnimate"> Animer (flèche)
+                    </label>
+                    <div class="sep"></div>
+                    <button class="va-tool-btn" id="vaUndoBtn" title="Annuler"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button class="va-tool-btn" id="vaRedoBtn" title="Refaire"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button class="va-tool-btn" id="vaDeleteBtn" title="Supprimer la sélection"><i class="fa-solid fa-trash"></i></button>
+                    <button class="va-tool-btn" id="vaClearBtn" title="Tout effacer"><i class="fa-solid fa-broom"></i></button>
+                    <button class="va-tool-btn" id="vaTagPlayerBtn" title="Associer la sélection à un joueur (pour la corrélation GPS)"><i class="fa-solid fa-user-tag"></i></button>
+                    <div class="sep"></div>
+                    <button class="va-tool-btn" id="vaFrameBackBtn" title="Image précédente"><i class="fa-solid fa-backward-step"></i></button>
+                    <button class="va-tool-btn" id="vaFrameFwdBtn" title="Image suivante"><i class="fa-solid fa-forward-step"></i></button>
+                    <button class="va-tool-btn" id="vaExportBtn" title="Exporter les annotations (JSON)"><i class="fa-solid fa-file-export"></i></button>
+                    <span class="va-save-status" id="vaSaveStatus"></span>
+                  </div>
+                </div>
+                <div class="card__foot" id="vaClipFoot">
+                  <span class="badge badge-green"><i class="fa-solid fa-users"></i> Visible par toute l'équipe technique</span>
+                </div>
+              </div>
+            </div>
+            <div style="grid-column:span 4;">
+              <div class="card">
+                <div class="card__head"><h3>Annotations</h3><span class="muted" id="vaAnnoCount">0</span></div>
+                <div class="card__body" style="padding:0;max-height:520px;overflow-y:auto;">
+                  <table class="simple-table" style="width:100%;">
+                    <thead><tr><th>Temps</th><th>Type</th><th></th></tr></thead>
+                    <tbody id="vaAnnoTbody"><tr><td colspan="3" class="va-empty-state">Aucune annotation</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery (chargé par cohérence avec le reste de l'app, non requis par cette page) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+
+  <script>
+  (function () {
+    // ==========================================================================
+    // TÉLESTRATION — moteur de dessin Canvas 2D natif (aucune lib de dessin).
+    // Coordonnées stockées NORMALISÉES [0,1] (fraction de la largeur/hauteur de
+    // la vidéo) pour rester correctes quelle que soit la taille d'affichage du
+    // canvas (redimensionnement fenêtre, orientation...).
+    // ==========================================================================
+    // fitness_coach ajouté : propriétaire naturel des données GPS, doit pouvoir
+    // créer/lier des annotations GPS (cohérent avec ANNOTATION_STAFF_ROLES côté serveur).
+    const EDIT_ROLES = ['video_analyst', 'head_coach', 'technical_director', 'data_analyst', 'fitness_coach', 'admin'];
+
+    const els = {
+      authGate: document.getElementById('vaAuthGate'),
+      app: document.getElementById('vaApp'),
+      editActions: document.getElementById('vaEditActions'),
+      newClipBtn: document.getElementById('vaNewClipBtn'),
+      newClipPanel: document.getElementById('vaNewClipPanel'),
+      newTitle: document.getElementById('vaNewTitle'),
+      newUrl: document.getElementById('vaNewUrl'),
+      newFile: document.getElementById('vaNewFile'),
+      newPlayer: document.getElementById('vaNewPlayer'),
+      newAnchor: document.getElementById('vaNewAnchor'),
+      createClipBtn: document.getElementById('vaCreateClipBtn'),
+      cancelClipBtn: document.getElementById('vaCancelClipBtn'),
+      clipSelect: document.getElementById('vaClipSelect'),
+      deleteClipBtn: document.getElementById('vaDeleteClipBtn'),
+      clipTitle: document.getElementById('vaClipTitle'),
+      clipFoot: document.getElementById('vaClipFoot'),
+      video: document.getElementById('vaVideo'),
+      canvas: document.getElementById('vaCanvas'),
+      toolbar: document.getElementById('vaToolbar'),
+      color: document.getElementById('vaColor'),
+      thickness: document.getElementById('vaThickness'),
+      animate: document.getElementById('vaAnimate'),
+      undoBtn: document.getElementById('vaUndoBtn'),
+      redoBtn: document.getElementById('vaRedoBtn'),
+      deleteBtn: document.getElementById('vaDeleteBtn'),
+      clearBtn: document.getElementById('vaClearBtn'),
+      tagPlayerBtn: document.getElementById('vaTagPlayerBtn'),
+      frameBackBtn: document.getElementById('vaFrameBackBtn'),
+      frameFwdBtn: document.getElementById('vaFrameFwdBtn'),
+      exportBtn: document.getElementById('vaExportBtn'),
+      saveStatus: document.getElementById('vaSaveStatus'),
+      annoTbody: document.getElementById('vaAnnoTbody'),
+      annoCount: document.getElementById('vaAnnoCount'),
+    };
+    const ctx = els.canvas.getContext('2d');
+
+    let clips = [];
+    let players = []; // liste réelle des joueurs du club (CB_API.getPlayers()), pour associer une annotation/un clip à un joueur
+    let currentClip = null;
+    let annotations = []; // { id, type, data, timestamp_start_sec, timestamp_end_sec }
+    let selectedId = null;
+    let currentTool = 'select';
+    let canEdit = false;
+
+    const undoStack = []; // { kind: 'add'|'delete'|'update', before, after }
+    const redoStack = [];
+
+    // ---- Historique (undo/redo réel, avec appel serveur inverse à chaque étape) ----
+    function pushHistory(op) { undoStack.push(op); redoStack.length = 0; updateHistoryButtons(); }
+    function updateHistoryButtons() {
+      els.undoBtn.style.opacity = undoStack.length ? '1' : '.4';
+      els.redoBtn.style.opacity = redoStack.length ? '1' : '.4';
+    }
+
+    async function applyOpForward(op) {
+      if (op.kind === 'add') {
+        const saved = await CB_API.createVideoAnnotation(currentClip.id, toApiPayload(op.after));
+        Object.assign(op.after, saved);
+        annotations.push(op.after);
+      } else if (op.kind === 'delete') {
+        await CB_API.deleteVideoAnnotation(op.before.id);
+        annotations = annotations.filter((a) => a.id !== op.before.id);
+      } else if (op.kind === 'update') {
+        const saved = await CB_API.updateVideoAnnotation(op.before.id, toApiPayload(op.after));
+        const idx = annotations.findIndex((a) => a.id === op.before.id);
+        if (idx !== -1) annotations[idx] = saved;
+      }
+    }
+    async function applyOpInverse(op) {
+      if (op.kind === 'add') {
+        await CB_API.deleteVideoAnnotation(op.after.id);
+        annotations = annotations.filter((a) => a.id !== op.after.id);
+      } else if (op.kind === 'delete') {
+        const saved = await CB_API.createVideoAnnotation(currentClip.id, toApiPayload(op.before));
+        Object.assign(op.before, saved);
+        annotations.push(op.before);
+      } else if (op.kind === 'update') {
+        const saved = await CB_API.updateVideoAnnotation(op.before.id, toApiPayload(op.before));
+        const idx = annotations.findIndex((a) => a.id === op.before.id);
+        if (idx !== -1) annotations[idx] = saved;
+      }
+    }
+    function toApiPayload(a) {
+      return { type: a.type, data: a.data, timestampStartSec: a.timestamp_start_sec, timestampEndSec: a.timestamp_end_sec };
+    }
+
+    async function doAdd(annotation) {
+      const op = { kind: 'add', before: null, after: annotation };
+      setSaveStatus('Enregistrement…');
+      try { await applyOpForward(op); pushHistory(op); setSaveStatus('✓ Enregistré'); }
+      catch (err) { setSaveStatus('Échec de la sauvegarde'); Swal.fire('Erreur', err.message, 'error'); }
+      redraw(); renderAnnoList();
+    }
+    async function doDelete(annotation) {
+      const op = { kind: 'delete', before: annotation, after: null };
+      setSaveStatus('Suppression…');
+      try { await applyOpForward(op); pushHistory(op); setSaveStatus('✓ Enregistré'); }
+      catch (err) { setSaveStatus('Échec de la suppression'); Swal.fire('Erreur', err.message, 'error'); }
+      redraw(); renderAnnoList();
+    }
+    async function undo() {
+      if (!undoStack.length) return;
+      const op = undoStack.pop();
+      setSaveStatus('Annulation…');
+      try { await applyOpInverse(op); redoStack.push(op); setSaveStatus('✓ Enregistré'); }
+      catch (err) { setSaveStatus('Échec'); Swal.fire('Erreur', err.message, 'error'); }
+      updateHistoryButtons(); redraw(); renderAnnoList();
+    }
+    async function redo() {
+      if (!redoStack.length) return;
+      const op = redoStack.pop();
+      setSaveStatus('Rétablissement…');
+      try { await applyOpForward(op); undoStack.push(op); setSaveStatus('✓ Enregistré'); }
+      catch (err) { setSaveStatus('Échec'); Swal.fire('Erreur', err.message, 'error'); }
+      updateHistoryButtons(); redraw(); renderAnnoList();
+    }
+    function setSaveStatus(text) {
+      els.saveStatus.textContent = text;
+      if (text.startsWith('✓')) setTimeout(() => { if (els.saveStatus.textContent === text) els.saveStatus.textContent = ''; }, 2000);
+    }
+
+    // ---- Conversion normalisé <-> pixels canvas ----
+    function toPx(nx, ny) { return { x: nx * els.canvas.width, y: ny * els.canvas.height }; }
+    function toNorm(px, py) { return { x: px / els.canvas.width, y: py / els.canvas.height }; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function lerpPoint(a, b, t) { return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) }; }
+
+    function resizeCanvas() {
+      els.canvas.width = els.video.clientWidth || els.canvas.clientWidth || 640;
+      els.canvas.height = els.video.clientHeight || els.canvas.clientHeight || 360;
+      redraw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // ---- Géométrie affichée à l'instant t (avec interpolation si animée) ----
+    function geometryAt(anno, t) {
+      if (anno.data && anno.data.animateTo && anno.timestamp_end_sec != null) {
+        const start = Number(anno.timestamp_start_sec), end = Number(anno.timestamp_end_sec);
+        const progress = Math.max(0, Math.min(1, (t - start) / (end - start || 1)));
+        const from = lerpPoint(anno.data.from, anno.data.animateTo.from, progress);
+        const to = lerpPoint(anno.data.to, anno.data.animateTo.to, progress);
+        return { ...anno.data, from, to };
+      }
+      return anno.data;
+    }
+    function isVisible(anno, t) {
+      const start = Number(anno.timestamp_start_sec) || 0;
+      if (t < start) return false;
+      const hasAnimation = anno.data && anno.data.animateTo;
+      if (anno.timestamp_end_sec != null && !hasAnimation && t > Number(anno.timestamp_end_sec)) return false;
+      return true;
+    }
+
+    function drawArrowHead(p1, p2, color) {
+      const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+      const len = 12;
+      ctx.beginPath();
+      ctx.moveTo(p2.x, p2.y);
+      ctx.lineTo(p2.x - len * Math.cos(angle - Math.PI / 6), p2.y - len * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(p2.x, p2.y);
+      ctx.lineTo(p2.x - len * Math.cos(angle + Math.PI / 6), p2.y - len * Math.sin(angle + Math.PI / 6));
+      ctx.strokeStyle = color; ctx.stroke();
+    }
+
+    // Boîte englobante NORMALISÉE [0,1] par type — utilisée pour le surlignage
+    // de sélection ci-dessous (rendu réel, pas un espace réservé).
+    function boundingBoxNorm(type, geo) {
+      const PAD = 0.018; // marge visuelle autour de la forme, en fraction du canvas
+      if (type === 'arrow' || type === 'line') {
+        const xs = [geo.from.x, geo.to.x], ys = [geo.from.y, geo.to.y];
+        return { x: Math.min(...xs) - PAD, y: Math.min(...ys) - PAD, w: Math.abs(xs[1] - xs[0]) + 2 * PAD, h: Math.abs(ys[1] - ys[0]) + 2 * PAD };
+      }
+      if (type === 'circle') return { x: geo.cx - geo.r - PAD, y: geo.cy - geo.r - PAD, w: geo.r * 2 + 2 * PAD, h: geo.r * 2 + 2 * PAD };
+      if (type === 'rectangle') return { x: geo.x - PAD, y: geo.y - PAD, w: geo.w + 2 * PAD, h: geo.h + 2 * PAD };
+      if (type === 'freehand') {
+        const xs = geo.points.map((p) => p.x), ys = geo.points.map((p) => p.y);
+        return { x: Math.min(...xs) - PAD, y: Math.min(...ys) - PAD, w: Math.max(...xs) - Math.min(...xs) + 2 * PAD, h: Math.max(...ys) - Math.min(...ys) + 2 * PAD };
+      }
+      // text / player_marker : petite boîte fixe autour de l'ancre
+      return { x: geo.x - 0.03, y: geo.y - 0.03, w: 0.06, h: 0.06 };
+    }
+
+    function drawShape(type, geo, opts) {
+      opts = opts || {};
+      ctx.strokeStyle = geo.color || '#2C8F5E';
+      ctx.fillStyle = geo.color || '#2C8F5E';
+      ctx.lineWidth = geo.thickness || 3;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (type === 'arrow' || type === 'line') {
+        const p1 = toPx(geo.from.x, geo.from.y), p2 = toPx(geo.to.x, geo.to.y);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        if (type === 'arrow') drawArrowHead(p1, p2, geo.color);
+      } else if (type === 'circle') {
+        const c = toPx(geo.cx, geo.cy); const r = geo.r * els.canvas.width;
+        ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (type === 'rectangle') {
+        const p = toPx(geo.x, geo.y);
+        ctx.strokeRect(p.x, p.y, geo.w * els.canvas.width, geo.h * els.canvas.height);
+      } else if (type === 'freehand') {
+        if (!geo.points || geo.points.length < 2) return;
+        ctx.beginPath();
+        geo.points.forEach((pt, i) => { const p = toPx(pt.x, pt.y); i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+        ctx.stroke();
+      } else if (type === 'text') {
+        const p = toPx(geo.x, geo.y);
+        ctx.font = `700 ${14 + (geo.thickness || 3) * 2}px var(--font-body), sans-serif`;
+        ctx.fillText(geo.text || '', p.x, p.y);
+      } else if (type === 'player_marker') {
+        const p = toPx(geo.x, geo.y);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = '700 12px var(--font-mono), monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(geo.label || '', p.x, p.y + 1);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      }
+      if (opts.selected) {
+        const bb = boundingBoxNorm(type, geo);
+        const p = toPx(bb.x, bb.y);
+        ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#E0972E'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(p.x, p.y, bb.w * els.canvas.width, bb.h * els.canvas.height);
+        ctx.restore();
+      }
+    }
+
+    function redraw() {
+      ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+      const t = els.video.currentTime || 0;
+      annotations.filter((a) => isVisible(a, t)).forEach((a) => {
+        drawShape(a.type, geometryAt(a, t), { selected: a.id === selectedId });
+      });
+      if (draft) drawShape(draft.type, draft.data, {});
+    }
+    els.video.addEventListener('timeupdate', redraw);
+    els.video.addEventListener('seeked', redraw);
+    els.video.addEventListener('loadedmetadata', resizeCanvas);
+
+    // ---- Outils ----
+    document.querySelectorAll('.va-tool-btn[data-tool]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        currentTool = btn.dataset.tool;
+        document.querySelectorAll('.va-tool-btn[data-tool]').forEach((b) => b.classList.toggle('active', b === btn));
+        els.canvas.className = currentTool === 'select' ? 'va-cursor-select' : 'va-cursor-draw';
+      });
+    });
+
+    let draft = null; // forme en cours de tracé
+    let drawing = false;
+    let pendingAnimateClick = null; // annotation en attente d'un 2e clic pour définir la position d'arrivée
+
+    function canvasPoint(evt) {
+      const rect = els.canvas.getBoundingClientRect();
+      return toNorm(evt.clientX - rect.left, evt.clientY - rect.top);
+    }
+
+    async function promptText(label) {
+      const { value } = await Swal.fire({ title: label, input: 'text', showCancelButton: true, confirmButtonColor: '#2C8F5E' });
+      return value;
+    }
+
+    els.canvas.addEventListener('mousedown', (evt) => {
+      if (!canEdit || !currentClip) return;
+      const p = canvasPoint(evt);
+
+      if (pendingAnimateClick) {
+        finishAnimatedTarget(p);
+        return;
+      }
+      if (currentTool === 'select') {
+        selectedId = hitTest(p);
+        redraw(); renderAnnoList();
+        return;
+      }
+      // Les outils "click simple" (texte, marker joueur) ne passent jamais par
+      // mousedown/mouseup : drawing/draft ne doivent PAS être armés ici, sinon
+      // mouseup sort tôt (draft nul) sans jamais remettre drawing à false, et
+      // le futur "click" (géré séparément) se bloque en le trouvant à true.
+      if (!['arrow', 'line', 'circle', 'rectangle', 'freehand'].includes(currentTool)) return;
+      drawing = true;
+      const color = els.color.value, thickness = +els.thickness.value;
+      if (currentTool === 'arrow' || currentTool === 'line') {
+        draft = { type: currentTool, data: { from: p, to: p, color, thickness } };
+      } else if (currentTool === 'circle') {
+        draft = { type: 'circle', data: { cx: p.x, cy: p.y, r: 0, color, thickness } };
+      } else if (currentTool === 'rectangle') {
+        draft = { type: 'rectangle', data: { x: p.x, y: p.y, w: 0, h: 0, color, thickness } };
+      } else if (currentTool === 'freehand') {
+        draft = { type: 'freehand', data: { points: [p], color, thickness } };
+      }
+    });
+
+    els.canvas.addEventListener('mousemove', (evt) => {
+      if (!drawing || !draft) return;
+      const p = canvasPoint(evt);
+      if (draft.type === 'arrow' || draft.type === 'line') draft.data.to = p;
+      else if (draft.type === 'circle') draft.data.r = Math.hypot(p.x - draft.data.cx, p.y - draft.data.cy);
+      else if (draft.type === 'rectangle') { draft.data.w = p.x - draft.data.x; draft.data.h = p.y - draft.data.y; }
+      else if (draft.type === 'freehand') draft.data.points.push(p);
+      redraw();
+    });
+
+    els.canvas.addEventListener('mouseup', async () => {
+      if (!drawing || !draft) return;
+      drawing = false;
+      if (draft.type === 'rectangle') {
+        // normalise un rectangle dessiné avec des deltas négatifs (drag vers le haut/gauche)
+        const d = draft.data;
+        if (d.w < 0) { d.x += d.w; d.w = -d.w; }
+        if (d.h < 0) { d.y += d.h; d.h = -d.h; }
+      }
+      const startSec = els.video.currentTime || 0;
+      const finalized = draft; draft = null;
+
+      const isAnimatable = (finalized.type === 'arrow') && els.animate.checked;
+      if (isAnimatable) {
+        pendingAnimateClick = { type: finalized.type, data: finalized.data, timestamp_start_sec: startSec };
+        setSaveStatus('Cliquez sur la position d’arrivée…');
+        return;
+      }
+      await doAdd({ type: finalized.type, data: finalized.data, timestamp_start_sec: startSec, timestamp_end_sec: null });
+    });
+
+    els.canvas.addEventListener('click', async (evt) => {
+      if (!canEdit || !currentClip || drawing || pendingAnimateClick) return;
+      if (currentTool === 'text' || currentTool === 'player_marker') {
+        const p = canvasPoint(evt);
+        const label = currentTool === 'text' ? await promptText('Texte de l’annotation') : await promptText('Marker joueur (ex. #10, CB)');
+        if (!label) return;
+        const color = els.color.value, thickness = +els.thickness.value;
+        const data = currentTool === 'text' ? { x: p.x, y: p.y, text: label, color, thickness } : { x: p.x, y: p.y, label, color };
+        await doAdd({ type: currentTool, data, timestamp_start_sec: els.video.currentTime || 0, timestamp_end_sec: null });
+      }
+    });
+
+    async function finishAnimatedTarget(p) {
+      const base = pendingAnimateClick; pendingAnimateClick = null;
+      const dx = p.x - base.data.from.x, dy = p.y - base.data.from.y;
+      const { value: endOffset } = await Swal.fire({
+        title: 'Durée de la trajectoire (secondes)', input: 'number',
+        inputValue: 3, showCancelButton: true, confirmButtonColor: '#2C8F5E',
+      });
+      setSaveStatus('');
+      if (endOffset === undefined || endOffset === null || endOffset === '') { redraw(); return; }
+      const animateTo = { from: { x: base.data.from.x + dx, y: base.data.from.y + dy }, to: { x: base.data.to.x + dx, y: base.data.to.y + dy } };
+      await doAdd({
+        type: base.type,
+        data: { ...base.data, animateTo },
+        timestamp_start_sec: base.timestamp_start_sec,
+        timestamp_end_sec: base.timestamp_start_sec + (Number(endOffset) || 3),
+      });
+    }
+
+    function hitTest(p) {
+      const threshold = 0.02;
+      let best = null, bestDist = Infinity;
+      annotations.forEach((a) => {
+        const geo = geometryAt(a, els.video.currentTime || 0);
+        let d = Infinity;
+        if (a.type === 'circle') d = Math.abs(Math.hypot(p.x - geo.cx, p.y - geo.cy) - geo.r);
+        else if (a.type === 'rectangle') d = (p.x >= geo.x && p.x <= geo.x + geo.w && p.y >= geo.y && p.y <= geo.y + geo.h) ? 0 : Infinity;
+        else if (a.type === 'text' || a.type === 'player_marker') d = Math.hypot(p.x - geo.x, p.y - geo.y);
+        else if (a.type === 'arrow' || a.type === 'line') d = distToSegment(p, geo.from, geo.to);
+        else if (a.type === 'freehand') d = Math.min(...geo.points.map((pt) => Math.hypot(p.x - pt.x, p.y - pt.y)));
+        if (d < threshold && d < bestDist) { bestDist = d; best = a.id; }
+      });
+      return best;
+    }
+    function distToSegment(p, a, b) {
+      const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+      if (l2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+      let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (a.x + t * (b.x - a.x)), p.y - (a.y + t * (b.y - a.y)));
+    }
+
+    els.undoBtn.addEventListener('click', undo);
+    els.redoBtn.addEventListener('click', redo);
+    els.deleteBtn.addEventListener('click', async () => {
+      if (!selectedId) return;
+      const anno = annotations.find((a) => a.id === selectedId);
+      selectedId = null;
+      if (anno) await doDelete(anno);
+    });
+    els.clearBtn.addEventListener('click', async () => {
+      if (!annotations.length) return;
+      const confirm = await Swal.fire({ title: 'Tout effacer ?', text: `${annotations.length} annotation(s) seront supprimées définitivement.`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#C6414B' });
+      if (!confirm.isConfirmed) return;
+      const toDelete = [...annotations];
+      for (const a of toDelete) { await doDelete(a); }
+    });
+    // Associer/retirer un joueur sur l'annotation sélectionnée — indépendant du
+    // dessin lui-même (pas dans l'historique undo/redo, c'est une métadonnée).
+    els.tagPlayerBtn.addEventListener('click', async () => {
+      if (!selectedId) { Swal.fire('Aucune sélection', 'Sélectionnez d\'abord une annotation (outil « Sélectionner »).', 'info'); return; }
+      const anno = annotations.find((a) => a.id === selectedId);
+      if (!anno) return;
+      const options = { '': '— aucun —', ...Object.fromEntries(players.map((p) => [p.id, p.name])) };
+      const { value: playerId, isConfirmed } = await Swal.fire({
+        title: 'Associer à un joueur', input: 'select', inputOptions: options,
+        inputValue: anno.player_id || '', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+      });
+      if (!isConfirmed) return;
+      try {
+        const updated = await CB_API.updateVideoAnnotation(anno.id, { player_id: playerId || null });
+        const idx = annotations.findIndex((a) => a.id === anno.id);
+        if (idx !== -1) annotations[idx] = updated;
+        renderAnnoList();
+      } catch (err) {
+        Swal.fire('Erreur', err.message, 'error');
+      }
+    });
+    els.frameBackBtn.addEventListener('click', () => { els.video.pause(); els.video.currentTime = Math.max(0, els.video.currentTime - 1 / 30); });
+    els.frameFwdBtn.addEventListener('click', () => { els.video.pause(); els.video.currentTime = Math.min(els.video.duration || 1e9, els.video.currentTime + 1 / 30); });
+    els.exportBtn.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify({ clip: currentClip, annotations }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `telestration-${(currentClip && currentClip.title || 'clip').replace(/\s+/g, '-')}.json`;
+      a.click();
+    });
+
+    // ---- Liste des annotations (panneau de droite) ----
+    function renderAnnoList() {
+      els.annoCount.textContent = String(annotations.length);
+      if (!annotations.length) {
+        els.annoTbody.innerHTML = '<tr><td colspan="3" class="va-empty-state">Aucune annotation</td></tr>';
+        return;
+      }
+      const sorted = [...annotations].sort((a, b) => a.timestamp_start_sec - b.timestamp_start_sec);
+      els.annoTbody.innerHTML = sorted.map((a) => {
+        const mm = Math.floor(a.timestamp_start_sec / 60), ss = Math.floor(a.timestamp_start_sec % 60);
+        const time = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        const animBadge = a.data && a.data.animateTo ? ' <i class="fa-solid fa-wave-square" title="Animée" style="color:var(--accent-2);"></i>' : '';
+        const player = a.player_id ? players.find((p) => p.id === a.player_id) : null;
+        const playerBadge = player ? ` <span class="muted" style="font-size:10.5px;">· ${escapeHtml(player.name)}</span>` : '';
+        const gpsBtn = a.player_id
+          ? `<button class="va-gps-btn" data-gps-id="${a.id}" title="Voir la position GPS réelle à cet instant" style="background:none;border:none;cursor:pointer;color:var(--accent);"><i class="fa-solid fa-location-dot"></i></button>`
+          : `<i class="fa-solid fa-play" style="font-size:10px;color:var(--text-muted);"></i>`;
+        return `<tr class="va-anno-row${a.id === selectedId ? ' selected' : ''}" data-id="${a.id}">
+          <td>${time}</td><td>${escapeHtml(a.type)}${animBadge}${playerBadge}</td>
+          <td style="text-align:right;">${gpsBtn}</td>
+        </tr>`;
+      }).join('');
+    }
+    els.annoTbody.addEventListener('click', async (evt) => {
+      const gpsBtn = evt.target.closest('.va-gps-btn');
+      if (gpsBtn) {
+        evt.stopPropagation();
+        try {
+          const result = await CB_API.getAnnotationGps(gpsBtn.dataset.gpsId);
+          if (result.found) {
+            const mapsUrl = `https://www.google.com/maps?q=${result.latitude},${result.longitude}`;
+            await Swal.fire({
+              title: 'Position GPS réelle', icon: 'success',
+              html: `Lat/Lng : <b>${result.latitude}, ${result.longitude}</b><br>
+                     Vitesse : <b>${result.speed_kmh != null ? result.speed_kmh + ' km/h' : '—'}</b><br>
+                     Source : <code>${result.source}</code> · écart : ${result.delta_seconds}s<br>
+                     <a href="${mapsUrl}" target="_blank" rel="noopener">Voir sur Google Maps ↗</a>`,
+              confirmButtonColor: '#2C8F5E',
+            });
+          } else {
+            const reasonText = result.reason === 'no_time_anchor'
+              ? "Ce clip n'a pas d'ancrage horaire réel (voir « Nouveau clip » → Ancrage réel), impossible de corréler."
+              : "Aucune donnée GPS réelle n'a été trouvée à proximité de cet instant (dans une fenêtre de 2 minutes).";
+            await Swal.fire({ title: 'Aucune position GPS', icon: 'info', text: reasonText, confirmButtonColor: '#2C8F5E' });
+          }
+        } catch (err) {
+          Swal.fire('Erreur', err.message, 'error');
+        }
+        return;
+      }
+      const row = evt.target.closest('.va-anno-row');
+      if (!row) return;
+      selectedId = row.dataset.id;
+      const a = annotations.find((x) => x.id === selectedId);
+      if (a) els.video.currentTime = Number(a.timestamp_start_sec);
+      renderAnnoList(); redraw();
+    });
+
+    // ---- Clips ----
+    async function loadClips() {
+      clips = await CB_API.getVideoClips();
+      els.clipSelect.innerHTML = clips.length
+        ? clips.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')
+        : '<option value="">Aucun clip — créez-en un</option>';
+      if (clips.length) await selectClip(clips[0].id);
+      else { currentClip = null; els.clipTitle.textContent = 'Aucun clip — créez-en un pour commencer'; annotations = []; renderAnnoList(); }
+    }
+    async function selectClip(clipId) {
+      currentClip = clips.find((c) => c.id === clipId) || null;
+      if (!currentClip) return;
+      els.clipTitle.textContent = currentClip.title;
+      els.clipSelect.value = clipId;
+      selectedId = null; undoStack.length = 0; redoStack.length = 0; updateHistoryButtons();
+      if (currentClip.source_type === 'url' && currentClip.video_url) {
+        els.video.src = currentClip.video_url;
+      } else {
+        els.video.removeAttribute('src');
+        setSaveStatus('Clip local : resélectionnez le fichier vidéo ci-dessous.');
+      }
+      annotations = await CB_API.getClipAnnotations(clipId);
+      renderAnnoList(); redraw();
+      els.deleteClipBtn.hidden = !canEdit;
+    }
+    els.clipSelect.addEventListener('change', () => selectClip(els.clipSelect.value));
+    els.deleteClipBtn.addEventListener('click', async () => {
+      if (!currentClip) return;
+      const confirm = await Swal.fire({
+        title: `Supprimer « ${currentClip.title} » ?`,
+        text: `Ce clip et ses ${annotations.length} annotation(s) seront supprimés définitivement.`,
+        icon: 'warning', showCancelButton: true, confirmButtonColor: '#C6414B', confirmButtonText: 'Supprimer',
+      });
+      if (!confirm.isConfirmed) return;
+      try {
+        await CB_API.deleteVideoClip(currentClip.id);
+        clips = clips.filter((c) => c.id !== currentClip.id);
+        currentClip = null; annotations = []; selectedId = null;
+        els.video.removeAttribute('src'); els.deleteClipBtn.hidden = true;
+        els.clipSelect.innerHTML = clips.length
+          ? clips.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')
+          : '<option value="">Aucun clip — créez-en un</option>';
+        if (clips.length) await selectClip(clips[0].id);
+        else els.clipTitle.textContent = 'Aucun clip — créez-en un pour commencer';
+        renderAnnoList(); redraw();
+      } catch (err) {
+        Swal.fire('Erreur', err.message, 'error');
+      }
+    });
+
+    els.newClipBtn.addEventListener('click', () => els.newClipPanel.classList.add('open'));
+    els.cancelClipBtn.addEventListener('click', () => els.newClipPanel.classList.remove('open'));
+    els.createClipBtn.addEventListener('click', async () => {
+      const title = els.newTitle.value.trim();
+      if (!title) { Swal.fire('Titre requis', 'Donnez un titre au clip.', 'warning'); return; }
+      const file = els.newFile.files[0];
+      const url = els.newUrl.value.trim();
+      const playerId = els.newPlayer.value || null;
+      // datetime-local n'a pas de fuseau -> Date() l'interprète en heure locale,
+      // toISOString() la convertit en UTC réel (comportement voulu pour l'ancrage).
+      const recordedAtStart = els.newAnchor.value ? new Date(els.newAnchor.value).toISOString() : null;
+      try {
+        const clip = await CB_API.createVideoClip({ title, videoUrl: url || null, sourceType: file ? 'local' : 'url', playerId, recordedAtStart });
+        clips.unshift(clip);
+        els.clipSelect.innerHTML = clips.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
+        await selectClip(clip.id);
+        if (file) els.video.src = URL.createObjectURL(file);
+        els.newClipPanel.classList.remove('open');
+        els.newTitle.value = ''; els.newUrl.value = ''; els.newFile.value = ''; els.newPlayer.value = ''; els.newAnchor.value = '';
+      } catch (err) {
+        Swal.fire('Erreur', err.message, 'error');
+      }
+    });
+
+    async function loadPlayers() {
+      try {
+        const { data } = await CB_API.getPlayers();
+        players = data;
+        const opts = '<option value="">—</option>' + players.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        els.newPlayer.innerHTML = opts;
+      } catch { /* liste joueurs optionnelle — le clip peut être créé sans */ }
+    }
+
+    // ---- Démarrage ----
+    async function init() {
+      if (!CB_API.isAuthenticated()) {
+        els.authGate.hidden = false;
+        return;
+      }
+      let user;
+      try { user = await CB_API.me(); } catch { els.authGate.hidden = false; return; }
+      canEdit = EDIT_ROLES.includes(user.role);
+      els.app.hidden = false;
+      els.editActions.hidden = !canEdit;
+      els.toolbar.hidden = !canEdit;
+      resizeCanvas();
+      await loadPlayers(); // chargé pour tous (affichage des noms de joueur), pas seulement en édition
+      try {
+        await loadClips();
+      } catch (err) {
+        Swal.fire('Erreur', 'Impossible de charger les clips : ' + err.message, 'error');
+      }
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  })();
+  </script>
+</body>
+</html>

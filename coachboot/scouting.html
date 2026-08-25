@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scouting · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="scouting">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Recrutement</span>
+            <h1>Scouting</h1>
+            <p>Base de profils suivis par la cellule de recrutement</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="scoutingSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button type="button" class="btn btn-primary btn-sm" id="addScoutingBtn"><i class="fa-solid fa-plus"></i> Ajouter un profil</button></div>
+        </div>
+
+    <div class="grid grid-3" style="margin-bottom:20px;" data-aos="fade-up">
+      <div class="card">
+        <div class="card__head"><h3><i class="fa-solid fa-gem"></i> Pépite du jour</h3></div>
+        <div class="card__body" id="scoutingGemCard" style="min-height:90px;">
+          <p class="muted" style="font-size:12.5px;">Chargement…</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__head"><h3><i class="fa-solid fa-trophy"></i> Classement Performance</h3></div>
+        <div class="card__body" id="scoutingRankingCard" style="min-height:90px;">
+          <p class="muted" style="font-size:12.5px;">Chargement…</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__head"><h3><i class="fa-solid fa-heart"></i> Mes Favoris</h3></div>
+        <div class="card__body" style="min-height:90px;">
+          <div class="value" style="font-family:var(--font-display);font-size:30px;font-weight:700;" id="scoutingFavoritesCount">—</div>
+          <button type="button" class="btn btn-outline btn-sm" id="scoutingFavoritesToggle" style="margin-top:8px;">Afficher uniquement les favoris</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+    <div class="card__head"><h3>Profils suivis</h3><span class="muted" id="scoutingCount">4 joueurs</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="scoutingTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Joueur</th><th>Club actuel</th><th>Poste</th><th>Âge</th><th>Note</th><th>Statut</th><th>Favori</th></tr></thead>
+        <tbody id="scoutingTableBody"><tr><td>Enzo Marchetti</td><td>AS Rivière</td><td>Ailier</td><td>19</td><td><b>8.4</b>/10</td><td><span class="badge badge-violet">Fort potentiel</span></td><td><i class="fa-regular fa-star"></i></td></tr><tr><td>Yassine Bouzid</td><td>FC Plateau</td><td>Défenseur central</td><td>21</td><td><b>7.9</b>/10</td><td><span class="badge badge-green">Prêt à intégrer</span></td><td><i class="fa-regular fa-star"></i></td></tr><tr><td>Hugo Salaün</td><td>Olympique Vallée</td><td>Gardien</td><td>18</td><td><b>8.1</b>/10</td><td><span class="badge badge-blue">À surveiller</span></td><td><i class="fa-regular fa-star"></i></td></tr><tr><td>Idris Camara</td><td>Racing Club</td><td>Milieu défensif</td><td>22</td><td><b>7.6</b>/10</td><td><span class="badge badge-green">Prêt à intégrer</span></td><td><i class="fa-regular fa-star"></i></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+    <div class="grid grid-2" style="margin-top:20px;">
+      <div class="card" >
+    <div class="card__head"><h3><i class="fa-solid fa-braille"></i> Nuage de points — Âge × Note</h3></div>
+    <div class="card__body">
+      <div style="height:240px;"><canvas id="scoutMap"></canvas></div>
+    </div>
+
+  </div>
+      <div class="card" >
+    <div class="card__head"><h3>Profils suivis par poste</h3></div>
+    <div class="card__body">
+      <div style="height:240px;"><canvas id="scoutPos"></canvas></div>
+    </div>
+
+  </div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    const SCOUTING_TAG_BADGE = { 'Fort potentiel': 'violet', 'Prêt à intégrer': 'green', 'À surveiller': 'blue' };
+    const SCOUTING_POSITIONS = ['Gardien', 'Défenseur central', 'Latéral', 'Milieu défensif', 'Milieu offensif', 'Ailier', 'Attaquant'];
+    // Miroir exact des 4 lignes de démonstration déjà présentes dans le HTML —
+    // utilisé pour que Pépite du jour / Classement / Nuage de points restent
+    // cohérents avec le tableau visible en mode démo, plutôt que d'inventer
+    // des chiffres différents.
+    const SCOUTING_DEMO_PROFILES = [
+      { id: 'demo-1', name: 'Enzo Marchetti', current_club: 'AS Rivière', position: 'Ailier', age: 19, rating: 8.4, tag: 'Fort potentiel', is_favorite: false },
+      { id: 'demo-2', name: 'Yassine Bouzid', current_club: 'FC Plateau', position: 'Défenseur central', age: 21, rating: 7.9, tag: 'Prêt à intégrer', is_favorite: false },
+      { id: 'demo-3', name: 'Hugo Salaün', current_club: 'Olympique Vallée', position: 'Gardien', age: 18, rating: 8.1, tag: 'À surveiller', is_favorite: false },
+      { id: 'demo-4', name: 'Idris Camara', current_club: 'Racing Club', position: 'Milieu défensif', age: 22, rating: 7.6, tag: 'Prêt à intégrer', is_favorite: false },
+    ];
+
+    let scoutingProfiles = [];
+    let scoutingShowFavoritesOnly = false;
+    let scoutingIsLive = false;
+
+    function renderScoutingRow(p) {
+      const badgeKind = SCOUTING_TAG_BADGE[p.tag] || 'grey';
+      const starIcon = p.is_favorite ? 'fa-solid fa-star' : 'fa-regular fa-star';
+      const starAction = scoutingIsLive ? `data-action="toggle-favorite" data-id="${p.id}"` : '';
+      return `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.current_club || '—')}</td><td>${escapeHtml(p.position || '—')}</td><td>${p.age ?? '—'}</td><td>${p.rating != null ? `<b>${p.rating}</b>/10` : '—'}</td><td>${p.tag ? `<span class="badge badge-${badgeKind}">${escapeHtml(p.tag)}</span>` : '<span class="badge badge-grey">Non classé</span>'}</td><td><i class="${starIcon}" style="color:${p.is_favorite ? 'var(--accent-2, #E0972E)' : 'var(--text-muted)'};cursor:${scoutingIsLive ? 'pointer' : 'default'};" ${starAction} title="${scoutingIsLive ? 'Basculer favori' : 'Connectez-vous pour gérer vos favoris'}"></i></td></tr>`;
+    }
+
+    function renderScoutingTable() {
+      const list = scoutingShowFavoritesOnly ? scoutingProfiles.filter(p => p.is_favorite) : scoutingProfiles;
+      document.getElementById('scoutingTableBody').innerHTML = list.length
+        ? list.map(renderScoutingRow).join('')
+        : '<tr><td colspan="7" class="muted" style="text-align:center;padding:20px;">Aucun profil à afficher.</td></tr>';
+      document.getElementById('scoutingCount').textContent = `${list.length} joueur${list.length > 1 ? 's' : ''}`;
+    }
+
+    function renderScoutingHighlights() {
+      const rated = scoutingProfiles.filter(p => p.rating != null);
+      const gem = [...rated].sort((a, b) => b.rating - a.rating)[0];
+      document.getElementById('scoutingGemCard').innerHTML = gem
+        ? `<h4 style="margin:0 0 4px;font-size:15px;">${escapeHtml(gem.name)}</h4><p class="muted" style="font-size:12px;margin:0 0 8px;">${escapeHtml(gem.position || '—')} · ${escapeHtml(gem.current_club || '—')}</p><span class="badge badge-violet"><b>${gem.rating}</b>/10</span>`
+        : '<p class="muted" style="font-size:12.5px;">Aucun profil noté pour le moment.</p>';
+
+      const top3 = [...rated].sort((a, b) => b.rating - a.rating).slice(0, 3);
+      document.getElementById('scoutingRankingCard').innerHTML = top3.length
+        ? top3.map((p, i) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px;"><span>${i + 1}. ${escapeHtml(p.name)}</span><b>${p.rating}/10</b></div>`).join('')
+        : '<p class="muted" style="font-size:12.5px;">Aucun profil noté pour le moment.</p>';
+
+      const favCount = scoutingProfiles.filter(p => p.is_favorite).length;
+      document.getElementById('scoutingFavoritesCount').textContent = favCount;
+
+      const byPosition = SCOUTING_POSITIONS.map(pos => scoutingProfiles.filter(p => p.position === pos).length);
+      CB.doughnut('scoutPos', SCOUTING_POSITIONS, byPosition);
+
+      const scatterPoints = scoutingProfiles.filter(p => p.age != null && p.rating != null).map(p => ({ x: p.age, y: Number(p.rating), label: p.name }));
+      CB.scatter('scoutMap', scatterPoints, { label: 'Profils', xLabel: 'Âge', yLabel: 'Note /10' });
+    }
+
+    function initScoutingDataTable() {
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+        if ($.fn.DataTable.isDataTable('#scoutingTable')) $('#scoutingTable').DataTable().destroy();
+        $('#scoutingTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false });
+      }
+    }
+
+    async function loadScoutingFromApi() {
+      const badge = document.getElementById('scoutingSourceBadge');
+      try {
+        if (!CB_API.isAuthenticated()) throw new Error('not authenticated'); // pas de jeton -> l'appel échouerait (401) à coup sûr
+        scoutingProfiles = await CB_API.getScoutingProfiles();
+        scoutingIsLive = true;
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${scoutingProfiles.length})`;
+      } catch {
+        scoutingProfiles = SCOUTING_DEMO_PROFILES;
+        scoutingIsLive = false;
+      }
+      renderScoutingTable();
+      renderScoutingHighlights();
+      initScoutingDataTable();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadScoutingFromApi();
+
+      document.getElementById('scoutingFavoritesToggle').addEventListener('click', (e) => {
+        scoutingShowFavoritesOnly = !scoutingShowFavoritesOnly;
+        e.target.textContent = scoutingShowFavoritesOnly ? 'Afficher tous les profils' : 'Afficher uniquement les favoris';
+        renderScoutingTable();
+        initScoutingDataTable();
+      });
+
+      document.getElementById('scoutingTableBody').addEventListener('click', async (event) => {
+        const star = event.target.closest('[data-action="toggle-favorite"]');
+        if (!star) return;
+        const profile = scoutingProfiles.find(p => p.id === star.dataset.id);
+        if (!profile) return;
+        try {
+          await CB_API.updateScoutingProfile(profile.id, { is_favorite: !profile.is_favorite });
+          profile.is_favorite = !profile.is_favorite;
+          renderScoutingTable();
+          renderScoutingHighlights();
+          initScoutingDataTable();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+
+      document.getElementById('addScoutingBtn').addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Ajouter un profil de scouting',
+          html:
+            '<input id="swal-name" class="swal2-input" placeholder="Nom du joueur">' +
+            '<input id="swal-club" class="swal2-input" placeholder="Club actuel">' +
+            '<select id="swal-position" class="swal2-input">' + SCOUTING_POSITIONS.map(p => `<option>${p}</option>`).join('') + '</select>' +
+            '<input id="swal-age" type="number" class="swal2-input" placeholder="Âge">' +
+            '<input id="swal-rating" type="number" step="0.1" min="0" max="10" class="swal2-input" placeholder="Note (0-10)">' +
+            '<select id="swal-tag" class="swal2-input"><option value="">Non classé</option><option>Fort potentiel</option><option>Prêt à intégrer</option><option>À surveiller</option></select>',
+          confirmButtonText: 'Ajouter', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            name: document.getElementById('swal-name').value,
+            currentClub: document.getElementById('swal-club').value,
+            position: document.getElementById('swal-position').value,
+            age: document.getElementById('swal-age').value ? Number(document.getElementById('swal-age').value) : undefined,
+            rating: document.getElementById('swal-rating').value ? Number(document.getElementById('swal-rating').value) : undefined,
+            tag: document.getElementById('swal-tag').value || undefined,
+          }),
+        });
+        if (!formValues || !formValues.name) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour ajouter un profil via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createScoutingProfile(formValues);
+          await Swal.fire({ icon: 'success', title: 'Profil ajouté', confirmButtonColor: '#2C8F5E' });
+          loadScoutingFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

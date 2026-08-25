@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="admin">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Système</span>
+            <h1>Administration</h1>
+            <p>Gestion des utilisateurs, rôles et permissions</p>
+          </div>
+          <div class="page-head__actions"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> Inviter un utilisateur</button></div>
+        </div>
+        
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Utilisateurs actifs</span>
+    <div class="value"><span>47</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Rôles configurés</span>
+    <div class="value"><span>10</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Espace de stockage</span>
+    <div class="value"><span>64</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">%</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Dernière sauvegarde</span>
+    <div class="value"><span>Auj.</span> </div>
+    <span class="foot">03h12</span>
+  </div></div></div>
+    <div class="card">
+    <div class="card__head"><h3>Utilisateurs</h3><span class="muted">47 comptes</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="adminTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Statut</th><th>Dernière connexion</th></tr></thead>
+        <tbody><tr><td>Carmie Boot</td><td>Entraîneur principal</td><td><span class="badge badge-green">Actif</span></td><td>Il y a 5 min</td></tr><tr><td>S. Martins</td><td>Entraîneur U23</td><td><span class="badge badge-green">Actif</span></td><td>Il y a 1h</td></tr><tr><td>R. Nguyen</td><td>Préparateur physique</td><td><span class="badge badge-green">Actif</span></td><td>Hier</td></tr><tr><td>P. Costa</td><td>Analyste vidéo</td><td><span class="badge badge-grey">Inactif</span></td><td>Il y a 6 jours</td></tr><tr><td>L. Bernard</td><td>Data Analyst</td><td><span class="badge badge-green">Actif</span></td><td>Il y a 3h</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#adminTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false  }); } });</script>
+</body>
+</html>

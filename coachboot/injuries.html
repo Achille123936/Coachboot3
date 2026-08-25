@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blessures · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="injuries">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Santé & performance</span>
+            <h1>Blessures</h1>
+            <p>Suivi médical et prévention des blessures</p>
+          </div>
+          <div class="page-head__actions"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Déclarer une blessure</button></div>
+        </div>
+        
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Joueurs blessés</span>
+    <div class="value"><span>2</span> <small class="down"><i class="fa-solid fa-arrow-down"></i> -1</small></div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Jours d'indisponibilité (saison)</span>
+    <div class="value"><span>64</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Risque élevé détecté</span>
+    <div class="value"><span>1</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Taux de récidive</span>
+    <div class="value"><span>8</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">%</span> <small class="down"><i class="fa-solid fa-arrow-down"></i> -3%</small></div>
+    
+  </div></div></div>
+    <div class="card">
+    <div class="card__head"><h3>Suivi des blessures</h3></div>
+    <div class="card__body" style="padding:0;">
+      <table id="injuryTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Joueur</th><th>Type</th><th>Depuis</th><th>Retour estimé</th><th>Statut</th></tr></thead>
+        <tbody><tr><td>Julien Moreau</td><td>Ischio-jambiers</td><td>12 Juil. 2026</td><td>16 Août 2026</td><td><span class="badge badge-red">En soins</span></td></tr><tr><td>Nicolas Petit</td><td>Cheville (entorse légère)</td><td>28 Juil. 2026</td><td>09 Août 2026</td><td><span class="badge badge-amber">Réathlétisation</span></td></tr><tr><td>Rayan Haddad</td><td>Suivi préventif — genou</td><td>—</td><td>—</td><td><span class="badge badge-blue">Sous surveillance</span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#injuryTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false , searching:false, info:false }); } });</script>
+</body>
+</html>

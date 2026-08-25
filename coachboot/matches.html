@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matchs · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="matches">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Compétitions</span>
+            <h1>Matchs</h1>
+            <p>Calendrier, résultats et statistiques de match</p>
+          </div>
+          <div class="page-head__actions"><button class="btn btn-outline btn-sm"><i class="fa-solid fa-file-pdf"></i> Export PDF</button><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Programmer un match</button></div>
+        </div>
+        
+    <div class="tabs" data-tabs-wrap><button data-tab="all" class="active">Tous</button><button data-tab="upcoming" class="">À venir</button><button data-tab="past" class="">Terminés</button></div>
+    <div class="card">
+    <div class="card__head"><h3>Liste des matchs</h3><span class="muted">5 matchs</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="matchesTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Date</th><th>Domicile</th><th>Extérieur</th><th>Compétition</th><th>Score</th><th>Statut</th></tr></thead>
+        <tbody><tr><td>02 Août 2026</td><td>CoachBoot FC</td><td>FC Nord</td><td>Ligue 1 Amateur</td><td>—</td><td><span class="badge badge-blue">À venir</span></td></tr><tr><td>26 Juil. 2026</td><td>AS Littoral</td><td>CoachBoot FC</td><td>Ligue 1 Amateur</td><td>1 - 2</td><td><span class="badge badge-green">Terminé</span></td></tr><tr><td>19 Juil. 2026</td><td>CoachBoot FC</td><td>Racing Club</td><td>Coupe Régionale</td><td>3 - 1</td><td><span class="badge badge-green">Terminé</span></td></tr><tr><td>12 Juil. 2026</td><td>Étoile Sud</td><td>CoachBoot FC</td><td>Ligue 1 Amateur</td><td>0 - 0</td><td><span class="badge badge-green">Terminé</span></td></tr><tr><td>05 Juil. 2026</td><td>CoachBoot FC</td><td>Union Est</td><td>Ligue 1 Amateur</td><td>2 - 2</td><td><span class="badge badge-green">Terminé</span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+    <div class="grid grid-2" style="margin-top:20px;">
+      <div class="card" >
+    <div class="card__head"><h3>Possession — 5 derniers matchs</h3></div>
+    <div class="card__body">
+      <div style="height:240px;"><canvas id="matchPossession"></canvas></div>
+    </div>
+    
+  </div>
+      <div class="card" >
+    <div class="card__head"><h3>Buts marqués / encaissés</h3></div>
+    <div class="card__body">
+      <div style="height:240px;"><canvas id="matchGoals"></canvas></div>
+    </div>
+    
+  </div>
+    </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#matchesTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false  }); }
+    CB.line('matchPossession', ['J18','J19','J20','J21','J22'], [{label:'Possession %', data:[54,58,49,61,57]}]);
+    CB.bar('matchGoals', ['J18','J19','J20','J21','J22'], [{label:'Marqués', data:[2,3,0,2,1]},{label:'Encaissés', data:[2,1,0,2,1]}]);
+  });</script>
+</body>
+</html>

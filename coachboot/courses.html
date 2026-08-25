@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cours · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="courses">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Formation</span>
+            <h1>Cours</h1>
+            <p>Modules de formation continue pour le staff technique</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="coursesSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button type="button" class="btn btn-primary btn-sm" id="addCourseBtn"><i class="fa-solid fa-plus"></i> Nouveau cours</button></div>
+        </div>
+
+    <div class="grid grid-3" id="coursesGrid">
+
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-amber">Intermédiaire</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Licence B — Tactique collective</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 6h</p>
+            <div class="progress"><span style="width:100%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>100% terminé</span><a href="#">Revoir <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-red">Avancé</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Préparation physique moderne</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 4h30</p>
+            <div class="progress"><span style="width:65%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>65% terminé</span><a href="#">Continuer <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-red">Avancé</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Analyse vidéo avec données GPS</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 3h</p>
+            <div class="progress"><span style="width:30%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>30% terminé</span><a href="#">Continuer <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-amber">Intermédiaire</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Psychologie du sport et leadership</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 5h</p>
+            <div class="progress"><span style="width:0%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>0% terminé</span><a href="#">Continuer <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-green">Débutant</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Nutrition sportive appliquée</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 2h30</p>
+            <div class="progress"><span style="width:100%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>100% terminé</span><a href="#">Revoir <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-red">Avancé</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">Détection et scouting jeunes talents</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> 4h</p>
+            <div class="progress"><span style="width:10%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)"><span>10% terminé</span><a href="#">Continuer <i class="fa-solid fa-arrow-right"></i></a></div>
+          </div>
+        </div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    const COURSE_LEVEL_BADGE = { 'Débutant': 'green', 'Intermédiaire': 'amber', 'Avancé': 'red' };
+
+    function renderCourseCard(c) {
+      const pct = Math.round(c.progress_pct || 0);
+      const badgeKind = COURSE_LEVEL_BADGE[c.level] || 'grey';
+      const label = pct >= 100 ? 'Revoir' : 'Continuer';
+      return `
+        <div class="card" data-aos="fade-up">
+          <div class="card__body">
+            <span class="badge badge-${badgeKind}">${escapeHtml(c.level)}</span>
+            <h4 style="margin:12px 0 6px;font-size:15px;">${escapeHtml(c.title)}</h4>
+            <p style="font-size:12.5px;margin-bottom:12px;"><i class="fa-regular fa-clock"></i> ${escapeHtml(c.duration_label || '—')}</p>
+            <div class="progress"><span style="width:${pct}%;"></span></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--text-muted)">
+              <span>${pct}% terminé</span>
+              <a href="#" data-action="course-progress" data-id="${c.id}" data-pct="${pct}">${label} <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    async function loadCoursesFromApi() {
+      const badge = document.getElementById('coursesSourceBadge');
+      if (!CB_API.isAuthenticated()) return false; // pas de jeton -> l'appel échouerait (401) à coup sûr, autant rester en démo directement
+      try {
+        const courses = await CB_API.getCourses();
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${courses.length})`;
+        document.getElementById('coursesGrid').innerHTML = courses.map(renderCourseCard).join('');
+        return true;
+      } catch {
+        return false; // reste sur les cartes de démonstration déjà rendues dans le HTML
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCoursesFromApi();
+
+      // Délégation : les liens Continuer/Revoir sont recréés à chaque loadCoursesFromApi().
+      document.getElementById('coursesGrid').addEventListener('click', async (event) => {
+        const link = event.target.closest('[data-action="course-progress"]');
+        if (!link) return;
+        event.preventDefault();
+        const pct = Number(link.dataset.pct);
+        if (pct >= 100) {
+          Swal.fire({ icon: 'info', title: 'Cours terminé', text: 'Ce cours est déjà terminé à 100%.', confirmButtonColor: '#2C8F5E' });
+          return;
+        }
+        if (!CB_API.isAuthenticated()) {
+          Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour suivre votre progression via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+          return;
+        }
+        const nextPct = Math.min(100, pct + 25);
+        try {
+          await CB_API.updateCourseProgress(link.dataset.id, nextPct);
+          loadCoursesFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+
+      document.getElementById('addCourseBtn').addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Nouveau cours',
+          html:
+            '<input id="swal-title" class="swal2-input" placeholder="Titre du cours">' +
+            '<select id="swal-level" class="swal2-input"><option value="Débutant">Débutant</option><option value="Intermédiaire" selected>Intermédiaire</option><option value="Avancé">Avancé</option></select>' +
+            '<input id="swal-duration" class="swal2-input" placeholder="Durée (ex. 4h30)">',
+          confirmButtonText: 'Créer', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            title: document.getElementById('swal-title').value,
+            level: document.getElementById('swal-level').value,
+            duration: document.getElementById('swal-duration').value,
+          }),
+        });
+        if (!formValues || !formValues.title) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour créer un cours via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createCourse(formValues);
+          await Swal.fire({ icon: 'success', title: 'Cours créé', confirmButtonColor: '#2C8F5E' });
+          loadCoursesFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

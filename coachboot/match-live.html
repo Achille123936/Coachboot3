@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Live Center · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .btn[hidden] { display: none !important; } /* .btn fixe display:inline-flex, qui l'emporte sur [hidden] */
+
+    #mlVideo { width: 100%; height: 320px; background: #06170F; border-radius: var(--radius, 10px); object-fit: cover; display: block; }
+    .ml-video-wrap { position: relative; }
+    .ml-video-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+      padding: 24px; color: #C8D6CF; font-size: 13px; background: rgba(6,23,15,.55); border-radius: var(--radius, 10px);
+    }
+    .ml-captures { display: flex; gap: 8px; overflow-x: auto; padding-top: 10px; }
+    .ml-captures img { height: 56px; border-radius: 6px; border: 1px solid var(--border); }
+
+    #mlPitchWrap { position: relative; background: #0d3320; border-radius: var(--radius, 10px); overflow: hidden; }
+    #mlPitchSvg { width: 100%; height: auto; display: block; }
+    .ml-player-dot { cursor: pointer; }
+    .ml-player-num { font-family: var(--font-mono); font-size: 3px; fill: #fff; text-anchor: middle; pointer-events: none; }
+    .ml-player-dot.selected circle.ring { stroke: #fff; stroke-width: 0.6; }
+    .ml-player-dot.real circle.body { stroke: #FFD166; stroke-width: 0.8; }
+
+    .ml-legend { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-muted); padding: 10px 4px 0; }
+    .ml-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+    .ml-event-item { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .ml-event-item:last-child { border-bottom: none; }
+    .ml-event-item .t { font-family: var(--font-mono); color: var(--text-muted); font-size: 11.5px; min-width: 52px; }
+    .ml-tag-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+    .ml-perf-row { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .ml-perf-row:last-child { border-bottom: none; }
+    .ml-perf-row .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); font-weight: 600; }
+    .ml-perf-row .val { font-family: var(--font-mono); font-size: 19px; font-weight: 700; }
+
+    .ml-ai-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .ml-ai-item:last-child { border-bottom: none; }
+    .ml-ai-item i { margin-top: 2px; }
+    @media print {
+      .sidebar, .topbar, .ml-tag-btns, .ai-chat-fab, #mlSaveBtn { display: none !important; }
+      #mlReportView { display: block !important; }
+    }
+    #mlReportView { display: none; }
+  </style>
+</head>
+<body data-page="match-live">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h1>Match Live Center</h1>
+            <p>Caméra du match et suivi GPS des joueurs en temps réel.</p>
+          </div>
+        </div>
+
+        <div id="mlModeBanner" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius, 10px);margin-bottom:20px;font-weight:600;font-size:13.5px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--text-muted);">
+          <span id="mlModeDot" style="width:10px;height:10px;border-radius:50%;background:var(--text-muted);flex-shrink:0;"></span>
+          <span id="mlModeText">⚫ Hors ligne — aucun suivi en cours</span>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;"><div class="card__body" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field" style="margin:0;flex:1;min-width:160px;"><label>Équipe à domicile</label><input type="text" id="mlTeamHome" value="CoachBoot FC"></div>
+          <div class="field" style="margin:0;flex:1;min-width:160px;"><label>Équipe visiteuse</label><input type="text" id="mlTeamAway" value="FC Adverse"></div>
+          <button class="btn btn-outline btn-sm" id="mlSaveBtn" type="button"><i class="fa-solid fa-floppy-disk"></i> Enregistrer la session</button>
+        </div></div>
+
+        <div class="grid grid-12" style="margin-bottom:20px;" data-aos="fade-up">
+          <div style="grid-column:span 7;"><div class="card">
+            <div class="card__head"><h3><i class="fa-solid fa-video"></i> Caméra du match</h3><span class="badge badge-grey" id="mlCamBadge">Hors ligne</span></div>
+            <div class="card__body">
+              <div class="ml-video-wrap">
+                <video id="mlVideo" muted playsinline></video>
+                <div class="ml-video-overlay" id="mlCamOverlay">Cliquez sur « Démarrer diffusion » pour activer la caméra (webcam ou smartphone).</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button class="btn btn-primary btn-sm" id="mlCamStartBtn" type="button"><i class="fa-solid fa-play"></i> Démarrer diffusion</button>
+                <button class="btn btn-outline btn-sm" id="mlCamPauseBtn" type="button" hidden><i class="fa-solid fa-pause"></i> Pause</button>
+                <button class="btn btn-outline btn-sm" id="mlCamStopBtn" type="button" hidden><i class="fa-solid fa-stop"></i> Arrêter</button>
+                <button class="btn btn-outline btn-sm" id="mlCamCaptureBtn" type="button"><i class="fa-solid fa-camera"></i> Capture instantanée</button>
+                <select id="mlCamDeviceSelect" style="max-width:220px;"><option value="">Caméra par défaut</option></select>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <input type="text" id="mlStreamUrl" placeholder="Ou URL de flux réseau (caméra IP, HLS/MP4)…" style="flex:1;">
+                <button class="btn btn-ghost btn-sm" id="mlStreamConnectBtn" type="button"><i class="fa-solid fa-link"></i> Connecter</button>
+              </div>
+              <div class="ml-captures" id="mlCaptures"></div>
+            </div>
+          </div></div>
+
+          <div style="grid-column:span 5;"><div class="card">
+            <div class="card__head"><h3>Live GPS Performance</h3><span class="muted" id="mlPerfSelectLabel">Joueur</span></div>
+            <div class="card__body" style="padding-top:6px;">
+              <div class="field" style="margin-bottom:12px;">
+                <select id="mlPlayerSelect"></select>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted);margin-bottom:10px;">
+                <input type="checkbox" id="mlUseRealGps"> Utiliser mon GPS réel (navigateur) pour ce joueur
+              </label>
+              <div class="ml-perf-row"><span class="lbl">Joueur</span><span class="val" id="mlPerfName">—</span></div>
+              <div class="ml-perf-row"><span class="lbl">Distance</span><span class="val" id="mlPerfDistance">0.00 <small style="font-size:12px;color:var(--text-muted);">km</small></span></div>
+              <div class="ml-perf-row"><span class="lbl">Vitesse</span><span class="val" id="mlPerfSpeed">0.0 <small style="font-size:12px;color:var(--text-muted);">km/h</small></span></div>
+              <div class="ml-perf-row"><span class="lbl">Sprints</span><span class="val" id="mlPerfSprint">0</span></div>
+              <div class="ml-perf-row"><span class="lbl">Zone</span><span class="val" id="mlPerfZone" style="font-size:15px;">—</span></div>
+              <div class="ml-perf-row"><span class="lbl">Intensité</span>
+                <div class="progress" style="margin-top:4px;"><span id="mlPerfIntensityBar" style="width:0%;"></span></div>
+                <span class="muted" id="mlPerfIntensityText" style="font-size:11.5px;margin-top:3px;">0%</span>
+              </div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="grid grid-12" style="margin-bottom:20px;">
+          <div style="grid-column:span 7;"><div class="card">
+            <div class="card__head">
+              <h3><i class="fa-solid fa-futbol"></i> Terrain GPS en direct</h3>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span class="muted" id="mlElapsed" style="font-family:var(--font-mono);">00:00:00</span>
+                <button class="btn btn-primary btn-sm" id="mlModePositions" type="button">Positions</button>
+                <button class="btn btn-outline btn-sm" id="mlModeHeatmap" type="button">Heatmap</button>
+              </div>
+            </div>
+            <div class="card__body">
+              <div id="mlPitchWrap"><svg id="mlPitchSvg" viewBox="0 0 105 68" preserveAspectRatio="xMidYMid meet"></svg></div>
+              <div class="ml-legend">
+                <span><span class="sw" style="background:#E5525F;"></span id="mlLegendHome">Domicile</span>
+                <span><span class="sw" style="background:#3E63C7;"></span id="mlLegendAway">Visiteur</span>
+                <span style="margin-left:auto;display:flex;gap:8px;">
+                  <span class="badge badge-grey" id="mlGpsBadge">GPS simulation</span>
+                  <button class="btn btn-primary btn-sm" id="mlGpsStartBtn" type="button"><i class="fa-solid fa-play"></i> Démarrer suivi</button>
+                  <button class="btn btn-outline btn-sm" id="mlGpsPauseBtn" type="button" hidden><i class="fa-solid fa-pause"></i> Pause</button>
+                  <button class="btn btn-outline btn-sm" id="mlGpsStopBtn" type="button" hidden><i class="fa-solid fa-stop"></i> Arrêter</button>
+                </span>
+              </div>
+            </div>
+          </div></div>
+
+          <div style="grid-column:span 5;"><div class="card" style="height:100%;">
+            <div class="card__head"><h3><i class="fa-solid fa-timeline"></i> Timeline</h3><span class="muted">Vidéo + GPS</span></div>
+            <div class="card__body">
+              <div class="ml-tag-btns">
+                <button class="btn btn-outline btn-sm" data-event="sprint" type="button">⚡ Sprint</button>
+                <button class="btn btn-outline btn-sm" data-event="tir" type="button">🎯 Tir</button>
+                <button class="btn btn-outline btn-sm" data-event="passe" type="button">➡ Passe</button>
+                <button class="btn btn-outline btn-sm" data-event="interception" type="button">🛡 Interception</button>
+                <button class="btn btn-outline btn-sm" data-event="recuperation" type="button">🔁 Récupération</button>
+              </div>
+              <div style="max-height:360px;overflow-y:auto;">
+                <p class="muted" style="font-size:12.5px;" id="mlEventEmpty">Aucun événement pour le moment — démarrez le suivi GPS puis taguez une action, ou laissez les sprints se logger automatiquement.</p>
+                <div id="mlEventList"></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card__head"><h3><i class="fa-solid fa-satellite-dish"></i> Joueurs connectés en direct</h3><span class="badge badge-grey" id="mlLiveSocketBadge">Temps réel hors ligne</span></div>
+          <div class="card__body" style="padding:0;">
+            <table class="simple-table" style="width:100%;" id="mlLiveTable">
+              <thead><tr><th>Joueur</th><th>Distance</th><th>Vitesse</th><th>Accélération</th><th>Dernier relevé</th></tr></thead>
+              <tbody id="mlLiveTableBody"><tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:20px;">Aucun joueur connecté via l'application mobile (player-live.html) pour le moment.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card__head"><h3><i class="fa-solid fa-brain"></i> Analyse IA — performance &amp; tactique</h3><span class="badge badge-blue">Règles heuristiques en direct</span></div>
+          <div class="card__body" style="display:flex;gap:20px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:240px;">
+              <h4 style="margin:0 0 6px;font-size:13px;">Fatigue détectée</h4>
+              <div id="mlAiFatigue"><p class="muted" style="font-size:12.5px;">Pas encore assez de données — laissez le suivi GPS tourner quelques dizaines de secondes.</p></div>
+            </div>
+            <div style="flex:1;min-width:240px;">
+              <h4 style="margin:0 0 6px;font-size:13px;">Recommandations tactiques</h4>
+              <div id="mlAiTactical"><p class="muted" style="font-size:12.5px;">En attente de données de position…</p></div>
+            </div>
+            <div style="flex:1;min-width:240px;">
+              <h4 style="margin:0 0 6px;font-size:13px;">Comparaison joueurs (top 5 distance)</h4>
+              <div id="mlAiCompare"><p class="muted" style="font-size:12.5px;">—</p></div>
+            </div>
+          </div>
+          <div class="card__body" style="border-top:1px solid var(--border);">
+            <button class="btn btn-outline btn-sm" id="mlAiReportBtn" type="button"><i class="fa-solid fa-file-lines"></i> Générer un rapport automatique</button>
+            <p class="muted" style="font-size:11.5px;margin-top:8px;margin-bottom:0;">Analyse basée sur des règles statistiques simples (tendance de vitesse, occupation de zone) — pas un modèle entraîné. Voir « Roadmap IA » ci-dessous pour la vision par caméra.</p>
+          </div>
+        </div>
+
+        <!-- Rapport IA imprimable (masqué à l'écran, affiché via window.print()) -->
+        <div id="mlReportView">
+          <h1 style="font-family:var(--font-display);">CoachBoot IA — Rapport automatique de match</h1>
+          <p><b>Match :</b> <span id="rptMlTeams"></span> &nbsp; <b>Date :</b> <span id="rptMlDate"></span> &nbsp; <b>Durée suivie :</b> <span id="rptMlDuration"></span></p>
+          <h3>Fatigue détectée</h3>
+          <div id="rptMlFatigue"></div>
+          <h3>Recommandations tactiques</h3>
+          <div id="rptMlTactical"></div>
+          <h3>Top performers (distance parcourue)</h3>
+          <div id="rptMlCompare"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card__head"><h3><i class="fa-solid fa-microchip"></i> Roadmap IA</h3><span class="badge badge-amber">Prévu — non implémenté</span></div>
+          <div class="card__body" style="display:flex;gap:14px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;">
+              <p style="margin:0 0 8px;">Architecture prête à recevoir, sans que ces briques soient développées dans cette itération :</p>
+              <ul style="margin:0;padding-left:18px;color:var(--text-muted);font-size:13.5px;line-height:1.9;">
+                <li>Détection des joueurs par caméra (modèle de détection d'objets)</li>
+                <li>Tracking automatique multi-joueurs (ré-identification frame à frame)</li>
+                <li>Reconnaissance du ballon et de sa trajectoire</li>
+                <li>Analyse tactique automatisée (formations, occupation de zone)</li>
+              </ul>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <p style="margin:0 0 8px;">Compatible, en pratique, avec :</p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span class="badge badge-blue">OpenCV</span>
+                <span class="badge badge-violet">YOLO</span>
+                <span class="badge badge-grey">DeepSORT</span>
+              </div>
+              <p class="muted" style="font-size:12px;margin-top:12px;">Voir la note « Limites honnêtes » dans <code>coachboot-backend/docs/API.md</code> pour le détail.</p>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- Socket.io client (joueurs connectés en direct) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/gps-live.js"></script>
+  <script src="assets/js/gps-socket-client.js"></script>
+  <script src="assets/js/match-live-camera.js"></script>
+  <script src="assets/js/match-gps-live.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    /* ==========================================================================
+       MATCH LIVE CENTER — orchestration caméra + GPS 22 joueurs + timeline
+       ========================================================================== */
+    const PITCH_L = 105, PITCH_W = 68;
+    const els = {
+      modeDot: document.getElementById('mlModeDot'),
+      modeText: document.getElementById('mlModeText'),
+
+      camBadge: document.getElementById('mlCamBadge'),
+      camOverlay: document.getElementById('mlCamOverlay'),
+      camStart: document.getElementById('mlCamStartBtn'),
+      camPause: document.getElementById('mlCamPauseBtn'),
+      camStop: document.getElementById('mlCamStopBtn'),
+      camCapture: document.getElementById('mlCamCaptureBtn'),
+      camDeviceSelect: document.getElementById('mlCamDeviceSelect'),
+      streamUrl: document.getElementById('mlStreamUrl'),
+      streamConnect: document.getElementById('mlStreamConnectBtn'),
+      captures: document.getElementById('mlCaptures'),
+      video: document.getElementById('mlVideo'),
+
+      gpsBadge: document.getElementById('mlGpsBadge'),
+      gpsStart: document.getElementById('mlGpsStartBtn'),
+      gpsPause: document.getElementById('mlGpsPauseBtn'),
+      gpsStop: document.getElementById('mlGpsStopBtn'),
+      elapsed: document.getElementById('mlElapsed'),
+      modePositions: document.getElementById('mlModePositions'),
+      modeHeatmap: document.getElementById('mlModeHeatmap'),
+      pitchSvg: document.getElementById('mlPitchSvg'),
+
+      playerSelect: document.getElementById('mlPlayerSelect'),
+      useRealGps: document.getElementById('mlUseRealGps'),
+      perfName: document.getElementById('mlPerfName'),
+      perfDistance: document.getElementById('mlPerfDistance'),
+      perfSpeed: document.getElementById('mlPerfSpeed'),
+      perfSprint: document.getElementById('mlPerfSprint'),
+      perfZone: document.getElementById('mlPerfZone'),
+      perfIntensityBar: document.getElementById('mlPerfIntensityBar'),
+      perfIntensityText: document.getElementById('mlPerfIntensityText'),
+
+      eventList: document.getElementById('mlEventList'),
+      eventEmpty: document.getElementById('mlEventEmpty'),
+      saveBtn: document.getElementById('mlSaveBtn'),
+      teamHome: document.getElementById('mlTeamHome'),
+      teamAway: document.getElementById('mlTeamAway'),
+
+      liveSocketBadge: document.getElementById('mlLiveSocketBadge'),
+      liveTableBody: document.getElementById('mlLiveTableBody'),
+      aiFatigue: document.getElementById('mlAiFatigue'),
+      aiTactical: document.getElementById('mlAiTactical'),
+      aiCompare: document.getElementById('mlAiCompare'),
+      aiReportBtn: document.getElementById('mlAiReportBtn'),
+    };
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    function fmt(n, d = 1) { return Number(n || 0).toFixed(d); }
+    function fmtHms(totalSec) {
+      totalSec = Math.floor(totalSec || 0);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    /* ---------------------------------------------------------------------
+     * 1) Caméra du match (MediaDevices getUserMedia) — assets/js/match-live-camera.js
+     * ------------------------------------------------------------------- */
+    CBMatchCamera.attach(els.video);
+
+    async function populateCameraDevices() {
+      const devices = await CBMatchCamera.listDevices();
+      els.camDeviceSelect.innerHTML = '<option value="">Caméra par défaut</option>' +
+        devices.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Caméra ' + (i + 1)}</option>`).join('');
+    }
+    populateCameraDevices();
+
+    els.camStart.addEventListener('click', async () => {
+      const deviceId = els.camDeviceSelect.value || undefined;
+      await CBMatchCamera.start({ deviceId, facingMode: 'environment' });
+      populateCameraDevices(); // les labels ne sont dispo qu'après autorisation accordée
+    });
+    els.camPause.addEventListener('click', () => {
+      if (CBMatchCamera.getStatus() === 'paused') CBMatchCamera.resume(); else CBMatchCamera.pause();
+    });
+    els.camStop.addEventListener('click', () => CBMatchCamera.stop());
+    els.camCapture.addEventListener('click', () => {
+      const dataUrl = CBMatchCamera.capture();
+      if (!dataUrl) return;
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.title = new Date().toLocaleTimeString('fr-FR');
+      els.captures.prepend(img);
+    });
+    els.streamConnect.addEventListener('click', () => CBMatchCamera.connectUrl(els.streamUrl.value.trim()));
+
+    window.addEventListener('cbcam:start', (e) => {
+      const isNetwork = e.detail.source === 'network';
+      els.camBadge.className = 'badge badge-green';
+      els.camBadge.innerHTML = `<i class="fa-solid fa-video"></i> ${isNetwork ? 'Flux réseau connecté' : 'En direct'}`;
+      els.camOverlay.style.display = 'none';
+      els.camStart.hidden = true; els.camPause.hidden = isNetwork; els.camStop.hidden = false;
+      els.camPause.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    });
+    window.addEventListener('cbcam:pause', () => {
+      els.camPause.innerHTML = '<i class="fa-solid fa-play"></i> Reprendre';
+      els.camBadge.className = 'badge badge-grey'; els.camBadge.innerHTML = '<i class="fa-solid fa-video"></i> En pause';
+    });
+    window.addEventListener('cbcam:resume', () => {
+      els.camPause.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      els.camBadge.className = 'badge badge-green'; els.camBadge.innerHTML = '<i class="fa-solid fa-video"></i> En direct';
+    });
+    window.addEventListener('cbcam:stop', () => {
+      els.camBadge.className = 'badge badge-grey'; els.camBadge.innerHTML = '<i class="fa-solid fa-video"></i> Hors ligne';
+      els.camStart.hidden = false; els.camPause.hidden = true; els.camStop.hidden = true;
+      els.camOverlay.style.display = 'flex';
+    });
+    window.addEventListener('cbcam:error', (e) => {
+      els.camBadge.className = 'badge badge-red'; els.camBadge.innerHTML = '<i class="fa-solid fa-video"></i> Erreur';
+      els.camStart.hidden = false; els.camPause.hidden = true; els.camStop.hidden = true;
+      els.camOverlay.style.display = 'flex';
+      els.camOverlay.textContent = e.detail.message || "Impossible d'accéder à la caméra.";
+      Swal.fire({ icon: 'warning', title: 'Caméra indisponible', text: e.detail.message || "Impossible d'accéder à la caméra." });
+    });
+
+    /* ---------------------------------------------------------------------
+     * 2) GPS 22 joueurs + terrain SVG — assets/js/match-gps-live.js
+     * ------------------------------------------------------------------- */
+    const roster = CBMatchGpsLive.getRoster();
+    els.playerSelect.innerHTML =
+      '<optgroup label="Domicile">' + roster.filter(p => p.team === 'home').map(p => `<option value="${p.id}">#${p.number} ${escapeHtml(p.name)}</option>`).join('') + '</optgroup>' +
+      '<optgroup label="Visiteur">' + roster.filter(p => p.team === 'away').map(p => `<option value="${p.id}">#${p.number} ${escapeHtml(p.name)}</option>`).join('') + '</optgroup>';
+    els.playerSelect.value = CBMatchGpsLive.getSelectedId();
+
+    // ---- Terrain SVG : lignes statiques dessinées une fois, joueurs mis à jour à chaque tick ----
+    const svgNS = 'http://www.w3.org/2000/svg';
+    function svgEl(tag, attrs) {
+      const el = document.createElementNS(svgNS, tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    }
+    function drawPitchLines() {
+      const g = svgEl('g', { id: 'mlPitchLines' });
+      g.appendChild(svgEl('rect', { x: 2, y: 2, width: PITCH_L - 4, height: PITCH_W - 4, fill: 'none', stroke: 'rgba(255,255,255,.55)', 'stroke-width': 0.4 }));
+      g.appendChild(svgEl('line', { x1: PITCH_L / 2, y1: 2, x2: PITCH_L / 2, y2: PITCH_W - 2, stroke: 'rgba(255,255,255,.55)', 'stroke-width': 0.4 }));
+      g.appendChild(svgEl('circle', { cx: PITCH_L / 2, cy: PITCH_W / 2, r: 9.15, fill: 'none', stroke: 'rgba(255,255,255,.55)', 'stroke-width': 0.4 }));
+      g.appendChild(svgEl('rect', { x: 2, y: 14, width: 16.5, height: 40, fill: 'none', stroke: 'rgba(255,255,255,.55)', 'stroke-width': 0.4 }));
+      g.appendChild(svgEl('rect', { x: PITCH_L - 18.5, y: 14, width: 16.5, height: 40, fill: 'none', stroke: 'rgba(255,255,255,.55)', 'stroke-width': 0.4 }));
+      els.pitchSvg.appendChild(g);
+    }
+    drawPitchLines();
+
+    const heatGroup = svgEl('g', { id: 'mlHeatGroup', style: 'display:none;' });
+    const posGroup = svgEl('g', { id: 'mlPosGroup' });
+    els.pitchSvg.appendChild(heatGroup);
+    els.pitchSvg.appendChild(posGroup);
+
+    const HEAT_COLS = 21, HEAT_ROWS = 14;
+    const heatGrid = Array.from({ length: HEAT_ROWS }, () => Array(HEAT_COLS).fill(0));
+    let heatMax = 1;
+    const heatCells = [];
+    for (let r = 0; r < HEAT_ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < HEAT_COLS; c++) {
+        const cell = svgEl('rect', {
+          x: (c / HEAT_COLS) * PITCH_L, y: (r / HEAT_ROWS) * PITCH_W,
+          width: PITCH_L / HEAT_COLS, height: PITCH_W / HEAT_ROWS,
+          fill: '#2C8F5E', 'fill-opacity': 0,
+        });
+        heatGroup.appendChild(cell);
+        row.push(cell);
+      }
+      heatCells.push(row);
+    }
+
+    const ballEl = svgEl('circle', { r: 0.9, fill: '#fff', stroke: '#06170F', 'stroke-width': 0.2 });
+    posGroup.appendChild(ballEl);
+
+    const playerEls = {}; // id -> { g, ring, body, text }
+    roster.forEach(p => {
+      const g = svgEl('g', { class: 'ml-player-dot', 'data-player-id': p.id });
+      const ring = svgEl('circle', { class: 'ring', r: 2.5, fill: 'none', 'stroke-width': 0.5, stroke: 'transparent' });
+      const body = svgEl('circle', { class: 'body', r: 2, fill: p.team === 'home' ? '#E5525F' : '#3E63C7' });
+      const text = svgEl('text', { class: 'ml-player-num', y: 0.9 });
+      text.textContent = p.number;
+      g.appendChild(ring); g.appendChild(body); g.appendChild(text);
+      g.addEventListener('click', () => { els.playerSelect.value = p.id; CBMatchGpsLive.selectPlayer(p.id); refreshSelection(); });
+      posGroup.appendChild(g);
+      playerEls[p.id] = { g, ring, body, text };
+    });
+
+    /* ---------------------------------------------------------------------
+     * 3) Joueurs connectés en direct via Socket.io (player-live.html)
+     * ------------------------------------------------------------------- */
+    const realGroup = svgEl('g', { id: 'mlRealGroup' });
+    els.pitchSvg.appendChild(realGroup);
+
+    let geoAnchor = null; // premier point réel reçu cette session = centre du terrain projeté
+    function projectLatLng(lat, lng) {
+      if (!geoAnchor) geoAnchor = { lat, lng };
+      const mPerDegLat = 111320;
+      const mPerDegLng = 111320 * Math.cos(geoAnchor.lat * Math.PI / 180);
+      const dxM = (lng - geoAnchor.lng) * mPerDegLng;
+      const dyM = (lat - geoAnchor.lat) * mPerDegLat;
+      return { x: clamp(0.5 + dxM / PITCH_L, 0.02, 0.98), y: clamp(0.5 - dyM / PITCH_W, 0.03, 0.97) };
+    }
+
+    const connectedPlayers = new Map(); // playerId -> { name, distanceKm, speedKmh, acceleration, lastAt, els }
+    let playerNames = null; // Map playerId -> "Prénom Nom", résolu à la volée depuis /players
+
+    async function resolvePlayerName(playerId) {
+      if (!playerNames) {
+        playerNames = new Map();
+        try {
+          const { data } = await CB_API.getPlayers();
+          data.forEach(p => playerNames.set(p.id, p.name));
+        } catch { /* effectif indisponible : on retombe sur l'identifiant brut */ }
+      }
+      return playerNames.get(playerId) || `Joueur ${playerId.slice(0, 8)}`;
+    }
+
+    function ensureRealMarker(playerId) {
+      if (connectedPlayers.get(playerId).els) return connectedPlayers.get(playerId).els;
+      const g = svgEl('g', { class: 'ml-player-dot real' });
+      const ring = svgEl('circle', { r: 2.7, fill: 'none', stroke: '#FFD166', 'stroke-width': 0.6 });
+      const body = svgEl('circle', { r: 1.8, fill: '#FFD166' });
+      const text = svgEl('text', { class: 'ml-player-num', y: 0.9, fill: '#06170F' });
+      g.appendChild(ring); g.appendChild(body); g.appendChild(text);
+      realGroup.appendChild(g);
+      const els2 = { g, ring, body, text };
+      connectedPlayers.get(playerId).els = els2;
+      return els2;
+    }
+
+    function renderLiveTable() {
+      if (!connectedPlayers.size) {
+        els.liveTableBody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:20px;">Aucun joueur connecté via l\'application mobile (player-live.html) pour le moment.</td></tr>';
+        return;
+      }
+      els.liveTableBody.innerHTML = Array.from(connectedPlayers.entries()).map(([id, p]) => `
+        <tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${fmt(p.distanceKm, 2)} km</td>
+          <td>${fmt(p.speedKmh)} km/h</td>
+          <td>${p.acceleration != null ? fmt(p.acceleration, 1) + ' m/s²' : '—'}</td>
+          <td class="muted" style="font-size:11.5px;">${new Date(p.lastAt).toLocaleTimeString('fr-FR')}</td>
+        </tr>`).join('');
+    }
+
+    async function connectCoachSocket(matchId) {
+      if (!window.CBGpsSocket || !CB_API.isAuthenticated()) return;
+      if (!CBGpsSocket.connect()) return;
+      CBGpsSocket.joinAsCoach(matchId);
+    }
+
+    window.addEventListener('cbsocket:connect', () => {
+      els.liveSocketBadge.className = 'badge badge-amber'; els.liveSocketBadge.textContent = 'Connexion…';
+    });
+    window.addEventListener('cbsocket:joined', () => {
+      els.liveSocketBadge.className = 'badge badge-green'; els.liveSocketBadge.textContent = 'Temps réel actif';
+    });
+    window.addEventListener('cbsocket:disconnect', () => {
+      els.liveSocketBadge.className = 'badge badge-grey'; els.liveSocketBadge.textContent = 'Temps réel hors ligne';
+    });
+    window.addEventListener('cbsocket:error', (e) => {
+      console.warn('Socket.io :', e.detail.message);
+    });
+
+    window.addEventListener('cbsocket:gps', async (e) => {
+      const pt = e.detail;
+      if (!connectedPlayers.has(pt.playerId)) {
+        connectedPlayers.set(pt.playerId, { name: pt.playerId, distanceKm: 0, speedKmh: 0, acceleration: null, lastAt: Date.now(), els: null, history: [] });
+        connectedPlayers.get(pt.playerId).name = await resolvePlayerName(pt.playerId);
+      }
+      const rec = connectedPlayers.get(pt.playerId);
+      rec.distanceKm = pt.distance ?? rec.distanceKm;
+      rec.speedKmh = pt.speed ?? rec.speedKmh;
+      rec.acceleration = pt.acceleration ?? rec.acceleration;
+      rec.lastAt = Date.now();
+      rec.history.push({ t: Date.now(), speedKmh: rec.speedKmh });
+      if (rec.history.length > 60) rec.history.shift();
+
+      const proj = projectLatLng(pt.latitude, pt.longitude);
+      const markerEls = ensureRealMarker(pt.playerId);
+      markerEls.body.setAttribute('cx', proj.x * PITCH_L); markerEls.body.setAttribute('cy', proj.y * PITCH_W);
+      markerEls.ring.setAttribute('cx', proj.x * PITCH_L); markerEls.ring.setAttribute('cy', proj.y * PITCH_W);
+      markerEls.text.setAttribute('x', proj.x * PITCH_L); markerEls.text.setAttribute('y', proj.y * PITCH_W + 0.9);
+      markerEls.text.textContent = '●';
+
+      renderLiveTable();
+    });
+
+    let mapMode = 'positions';
+    function setMapMode(mode) {
+      mapMode = mode;
+      els.modePositions.classList.toggle('btn-primary', mode === 'positions');
+      els.modePositions.classList.toggle('btn-outline', mode !== 'positions');
+      els.modeHeatmap.classList.toggle('btn-primary', mode === 'heatmap');
+      els.modeHeatmap.classList.toggle('btn-outline', mode !== 'heatmap');
+      posGroup.style.display = mode === 'positions' ? '' : 'none';
+      heatGroup.style.display = mode === 'heatmap' ? '' : 'none';
+    }
+    els.modePositions.addEventListener('click', () => setMapMode('positions'));
+    els.modeHeatmap.addEventListener('click', () => setMapMode('heatmap'));
+
+    function refreshSelection() {
+      Object.entries(playerEls).forEach(([id, refs]) => {
+        refs.g.classList.toggle('selected', id === els.playerSelect.value);
+        refs.ring.setAttribute('stroke', id === els.playerSelect.value ? '#fff' : 'transparent');
+      });
+      const p = lastState && lastState.players.find(pl => pl.id === els.playerSelect.value);
+      els.useRealGps.checked = !!(p && p.isReal);
+      if (p) updatePerfPanel(p);
+    }
+    els.playerSelect.addEventListener('change', () => { CBMatchGpsLive.selectPlayer(els.playerSelect.value); refreshSelection(); });
+
+    els.useRealGps.addEventListener('change', () => {
+      const id = els.playerSelect.value;
+      if (els.useRealGps.checked) {
+        CBMatchGpsLive.setRealPlayerId(id);
+        if (window.CBGpsLive && !CBGpsLive.isTracking()) CBGpsLive.start();
+      } else {
+        if (CBMatchGpsLive.getRealPlayerId() === id) CBMatchGpsLive.setRealPlayerId(null);
+      }
+      updateMatchModeBanner();
+    });
+    // Le passage effectif en mode "réel" n'est confirmé qu'à cet événement
+    // (après l'autorisation de géolocalisation, asynchrone) — pas au moment
+    // du clic sur la case à cocher.
+    window.addEventListener('cbgps:start', updateMatchModeBanner);
+    window.addEventListener('cbgps:error', (e) => {
+      if (els.useRealGps.checked) {
+        els.useRealGps.checked = false;
+        CBMatchGpsLive.setRealPlayerId(null);
+        Swal.fire({ icon: 'warning', title: 'GPS réel indisponible', text: e.detail.message || "Impossible d'accéder à la position." });
+        updateMatchModeBanner();
+      }
+    });
+
+    function updatePerfPanel(p) {
+      els.perfName.textContent = `#${p.number} ${p.name}${p.isReal ? ' (GPS réel)' : ''}`;
+      els.perfDistance.innerHTML = `${fmt(p.distanceKm, 2)} <small style="font-size:12px;color:var(--text-muted);">km</small>`;
+      els.perfSpeed.innerHTML = `${fmt(p.speedKmh)} <small style="font-size:12px;color:var(--text-muted);">km/h</small>`;
+      els.perfSprint.textContent = p.sprintCount;
+      els.perfZone.textContent = p.zone || '—';
+      els.perfIntensityBar.style.width = `${p.intensityPct}%`;
+      els.perfIntensityText.textContent = `${p.intensityPct}%`;
+    }
+
+    let lastState = null;
+    let matchLiveId = null;
+    let aiInterval = null;
+    const events = [];
+    const rosterHistory = new Map(); // playerId -> [{ t, speedKmh }, ...] (fenêtre glissante, pour l'IA)
+
+    function addEvent(type, player, source) {
+      const time = CBMatchGpsLive.getState().elapsedSec;
+      events.unshift({ time, type, playerName: player ? player.name : null, source: source || 'manuel' });
+      renderEvents();
+      if (matchLiveId && CB_API.isAuthenticated()) {
+        CB_API.logMatchLiveEvent(matchLiveId, { eventType: type, time }).catch(() => {});
+      }
+    }
+
+    function renderEvents() {
+      els.eventEmpty.style.display = events.length ? 'none' : '';
+      els.eventList.innerHTML = events.map(ev => `
+        <div class="ml-event-item">
+          <span class="t">${fmtHms(ev.time)}</span>
+          <span>${ev.type}${ev.playerName ? ' — ' + escapeHtml(ev.playerName) : ''} <span class="muted" style="font-size:11px;">(${ev.source})</span></span>
+        </div>`).join('');
+    }
+
+    document.querySelectorAll('[data-event]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!CBMatchGpsLive.isRunning()) { Swal.fire({ icon: 'info', title: 'Suivi GPS inactif', text: 'Démarrez le suivi GPS pour horodater les événements sur la timeline.' }); return; }
+        const p = lastState && lastState.players.find(pl => pl.id === els.playerSelect.value);
+        addEvent(btn.dataset.event, p, 'manuel');
+      });
+    });
+
+    window.addEventListener('matchgps:sprint', (e) => {
+      addEvent('sprint', { name: e.detail.name }, 'auto');
+    });
+
+    // Bandeau de mode, impossible à manquer : distingue une VRAIE session GPS
+    // (au moins un joueur réellement tracké via CBGpsLive) d'une simulation
+    // pure (les 22 joueurs se déplacent par marche aléatoire, voir
+    // match-gps-live.js) — jamais présentée comme un match réel.
+    function updateMatchModeBanner() {
+      const running = window.CBMatchGpsLive && CBMatchGpsLive.isRunning();
+      const realPlayerId = window.CBMatchGpsLive ? CBMatchGpsLive.getRealPlayerId() : null;
+      const hasRealGps = !!realPlayerId && window.CBGpsLive && CBGpsLive.isTracking();
+
+      if (!running) {
+        els.modeDot.style.background = 'var(--text-muted)';
+        els.modeText.textContent = '⚫ Hors ligne — aucun suivi en cours';
+      } else if (hasRealGps) {
+        els.modeDot.style.background = 'var(--accent)';
+        els.modeText.textContent = '🟢 EN DIRECT — au moins un joueur suit un GPS réel (le reste de l\'effectif reste simulé)';
+      } else {
+        els.modeDot.style.background = 'var(--accent-2)';
+        els.modeText.textContent = '🟡 MODE SIMULATION — les 22 joueurs affichés sont une démonstration (marche aléatoire), aucune donnée GPS réelle';
+      }
+    }
+
+    window.addEventListener('matchgps:start', () => {
+      els.gpsBadge.className = 'badge badge-green'; els.gpsBadge.textContent = 'GPS en direct';
+      els.gpsStart.hidden = true; els.gpsPause.hidden = false; els.gpsStop.hidden = false;
+      els.gpsPause.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      if (CB_API.isAuthenticated() && !matchLiveId) {
+        CB_API.createMatchLive({ teamHome: els.teamHome.value, teamAway: els.teamAway.value })
+          .then(m => { matchLiveId = m.id; return CB_API.updateMatchLiveStatus(matchLiveId, 'live'); })
+          .then(() => connectCoachSocket(matchLiveId))
+          .catch(() => { /* mode local uniquement si l'API n'est pas joignable */ });
+      } else if (matchLiveId) {
+        connectCoachSocket(matchLiveId);
+      }
+      clearInterval(aiInterval);
+      aiInterval = setInterval(renderAi, 5000);
+      updateMatchModeBanner();
+    });
+    window.addEventListener('matchgps:pause', () => {
+      els.gpsPause.innerHTML = '<i class="fa-solid fa-play"></i> Reprendre';
+      if (matchLiveId) CB_API.updateMatchLiveStatus(matchLiveId, 'halftime').catch(() => {});
+      updateMatchModeBanner();
+    });
+    window.addEventListener('matchgps:resume', () => {
+      els.gpsPause.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      if (matchLiveId) CB_API.updateMatchLiveStatus(matchLiveId, 'live').catch(() => {});
+      updateMatchModeBanner();
+    });
+    window.addEventListener('matchgps:stop', () => {
+      els.gpsBadge.className = 'badge badge-grey'; els.gpsBadge.textContent = 'Session terminée';
+      els.gpsStart.hidden = false; els.gpsPause.hidden = true; els.gpsStop.hidden = true;
+      if (matchLiveId) CB_API.updateMatchLiveStatus(matchLiveId, 'finished').catch(() => {});
+      if (window.CBGpsSocket) CBGpsSocket.disconnect();
+      clearInterval(aiInterval);
+      updateMatchModeBanner();
+    });
+
+    window.addEventListener('matchgps:tick', (e) => {
+      lastState = e.detail;
+      els.elapsed.textContent = fmtHms(lastState.elapsedSec);
+
+      lastState.players.forEach(p => {
+        // Historique glissant de vitesse par joueur, utilisé par l'analyse IA (fatigue).
+        if (!rosterHistory.has(p.id)) rosterHistory.set(p.id, []);
+        const h = rosterHistory.get(p.id);
+        h.push({ t: lastState.elapsedSec, speedKmh: p.speedKmh });
+        if (h.length > 120) h.shift();
+
+        const refs = playerEls[p.id];
+        if (!refs) return;
+        refs.g.classList.toggle('real', !!p.isReal);
+        refs.body.setAttribute('cx', p.x * PITCH_L); refs.body.setAttribute('cy', p.y * PITCH_W);
+        refs.ring.setAttribute('cx', p.x * PITCH_L); refs.ring.setAttribute('cy', p.y * PITCH_W);
+        refs.text.setAttribute('x', p.x * PITCH_L); refs.text.setAttribute('y', p.y * PITCH_W + 0.9);
+
+        const col = Math.min(HEAT_COLS - 1, Math.floor(p.x * HEAT_COLS));
+        const row = Math.min(HEAT_ROWS - 1, Math.floor(p.y * HEAT_ROWS));
+        heatGrid[row][col] += 1;
+        if (heatGrid[row][col] > heatMax) heatMax = heatGrid[row][col];
+        heatCells[row][col].setAttribute('fill-opacity', Math.min(0.85, heatGrid[row][col] / heatMax));
+      });
+      ballEl.setAttribute('cx', lastState.ball.x * PITCH_L);
+      ballEl.setAttribute('cy', lastState.ball.y * PITCH_W);
+
+      const p = lastState.players.find(pl => pl.id === els.playerSelect.value);
+      if (p) updatePerfPanel(p);
+    });
+
+    /* ---------------------------------------------------------------------
+     * 4) Analyse IA (règles heuristiques, calculées en direct depuis rosterHistory)
+     * ------------------------------------------------------------------- */
+    function computeFatigue() {
+      const flagged = [];
+      rosterHistory.forEach((h, id) => {
+        if (h.length < 20) return;
+        const first10 = h.slice(0, 10);
+        const last10 = h.slice(-10);
+        const avgFirst = first10.reduce((a, b) => a + b.speedKmh, 0) / first10.length;
+        const avgLast = last10.reduce((a, b) => a + b.speedKmh, 0) / last10.length;
+        if (avgFirst < 1) return; // évite une division bruitée pour un joueur resté quasi immobile
+        const ratio = avgLast / avgFirst;
+        if (ratio < 0.75) {
+          const p = lastState && lastState.players.find(pl => pl.id === id);
+          flagged.push({ name: p ? `#${p.number} ${p.name}` : id, dropPct: Math.round((1 - ratio) * 100) });
+        }
+      });
+      return flagged.sort((a, b) => b.dropPct - a.dropPct).slice(0, 5);
+    }
+
+    function computeTactical() {
+      if (!lastState || !lastState.players.length) return [];
+      const notes = [];
+      const home = lastState.players.filter(p => p.team === 'home');
+      const away = lastState.players.filter(p => p.team === 'away');
+      const avg = (arr, key) => arr.reduce((a, p) => a + p[key], 0) / (arr.length || 1);
+
+      const homeX = avg(home, 'x');
+      if (homeX < 0.35) notes.push("Équipe domicile repliée profondément — envisager de monter le bloc défensif.");
+      else if (homeX > 0.65) notes.push("Équipe domicile très haute — attention à l'espace laissé dans le dos de la défense.");
+
+      const allY = avg(lastState.players, 'y');
+      if (allY < 0.38) notes.push('Jeu concentré côté gauche du terrain — chercher à exploiter le couloir droit.');
+      else if (allY > 0.62) notes.push('Jeu concentré côté droit du terrain — chercher à exploiter le couloir gauche.');
+
+      const awayIntensity = avg(away, 'intensityPct');
+      const homeIntensity = avg(home, 'intensityPct');
+      if (Math.abs(awayIntensity - homeIntensity) > 15) {
+        notes.push(`Écart d'intensité marqué entre les deux équipes (${Math.round(homeIntensity)}% vs ${Math.round(awayIntensity)}%) — l'équipe la moins intense pourrait subir le pressing.`);
+      }
+      if (!notes.length) notes.push('Occupation du terrain équilibrée — pas de déséquilibre tactique flagrant détecté.');
+      return notes;
+    }
+
+    function computeComparison() {
+      if (!lastState) return [];
+      return lastState.players.slice().sort((a, b) => b.distanceKm - a.distanceKm).slice(0, 5);
+    }
+
+    function renderAi() {
+      const fatigue = computeFatigue();
+      els.aiFatigue.innerHTML = fatigue.length
+        ? fatigue.map(f => `<div class="ml-ai-item"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-2);"></i><span>${escapeHtml(f.name)} — vitesse en baisse de ${f.dropPct}% par rapport au début du suivi.</span></div>`).join('')
+        : '<p class="muted" style="font-size:12.5px;">Aucun signe de fatigue détecté pour le moment.</p>';
+
+      const tactical = computeTactical();
+      els.aiTactical.innerHTML = tactical.map(t => `<div class="ml-ai-item"><i class="fa-solid fa-chess-board" style="color:var(--info);"></i><span>${escapeHtml(t)}</span></div>`).join('');
+
+      const compare = computeComparison();
+      els.aiCompare.innerHTML = compare.length
+        ? compare.map(p => `<div class="ml-ai-item"><i class="fa-solid fa-ranking-star" style="color:var(--accent);"></i><span>#${p.number} ${escapeHtml(p.name)} — ${fmt(p.distanceKm, 2)} km</span></div>`).join('')
+        : '<p class="muted" style="font-size:12.5px;">—</p>';
+    }
+
+    els.aiReportBtn.addEventListener('click', () => {
+      if (!lastState) { Swal.fire({ icon: 'info', title: 'Aucune donnée', text: 'Démarrez le suivi GPS avant de générer un rapport.' }); return; }
+      document.getElementById('rptMlTeams').textContent = `${els.teamHome.value} vs ${els.teamAway.value}`;
+      document.getElementById('rptMlDate').textContent = new Date().toLocaleDateString('fr-FR');
+      document.getElementById('rptMlDuration').textContent = fmtHms(lastState.elapsedSec);
+
+      const fatigue = computeFatigue();
+      document.getElementById('rptMlFatigue').innerHTML = fatigue.length
+        ? `<ul>${fatigue.map(f => `<li>${escapeHtml(f.name)} — baisse de vitesse de ${f.dropPct}%</li>`).join('')}</ul>`
+        : '<p>Aucun signe de fatigue détecté.</p>';
+
+      const tactical = computeTactical();
+      document.getElementById('rptMlTactical').innerHTML = `<ul>${tactical.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
+
+      const compare = computeComparison();
+      document.getElementById('rptMlCompare').innerHTML = `<ol>${compare.map(p => `<li>#${p.number} ${escapeHtml(p.name)} — ${fmt(p.distanceKm, 2)} km, vitesse max ${fmt(p.maxSpeedKmh)} km/h</li>`).join('')}</ol>`;
+
+      window.print();
+    });
+
+    els.gpsStart.addEventListener('click', () => CBMatchGpsLive.start());
+    els.gpsPause.addEventListener('click', () => { if (CBMatchGpsLive.isPaused()) CBMatchGpsLive.resume(); else CBMatchGpsLive.pause(); });
+    els.gpsStop.addEventListener('click', () => CBMatchGpsLive.stop());
+
+    els.saveBtn.addEventListener('click', async () => {
+      if (!CB_API.isAuthenticated()) {
+        Swal.fire({ icon: 'info', title: 'Mode démonstration', text: "Connectez-vous pour synchroniser cette session Match Live avec le serveur — les événements restent visibles localement en attendant." });
+        return;
+      }
+      try {
+        if (!matchLiveId) {
+          const m = await CB_API.createMatchLive({ teamHome: els.teamHome.value, teamAway: els.teamAway.value });
+          matchLiveId = m.id;
+        }
+        await Promise.all(events.map(ev => CB_API.logMatchLiveEvent(matchLiveId, { eventType: ev.type, time: ev.time })));
+        Swal.fire({ icon: 'success', title: 'Session enregistrée', text: `${events.length} événement(s) synchronisé(s).` });
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Échec de la synchronisation', text: err.message || 'Erreur inconnue.' });
+      }
+    });
+
+    setMapMode('positions');
+    refreshSelection();
+  });</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Détection des risques de blessure · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="cell-injury-risk">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Cellule d'analyse</span>
+            <h1>Détection des risques de blessure</h1>
+            <p>Score de risque par joueur, basé sur la charge (ACWR) et l'historique.</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="dataSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span></div>
+        </div>
+
+    <div class="card" style="margin-bottom:20px;"><div class="card__body" style="display:flex;gap:14px;align-items:center;">
+      <div class="ic" style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;"><i class="fa-solid fa-chart-line"></i></div>
+      <p style="margin:0;" id="riskSummaryText">Score de risque par joueur, basé sur la charge et l'historique.</p>
+    </div></div>
+    <div class="grid grid-2"><div class="card" >
+    <div class="card__head"><h3>Score de risque par joueur</h3></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="c_0"></canvas></div>
+    </div>
+
+  </div><div class="card" >
+    <div class="card__head"><h3>Répartition par catégorie</h3></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="c_1"></canvas></div>
+    </div>
+
+  </div></div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    const RISK_COLOR = { 'Faible': CB.colors.accent, 'Modéré': CB.colors.accent2, 'Élevé': CB.colors.danger };
+
+    function renderDemoRisk() {
+      const names = ["Ferreira","Moreau","Benali","Girard","Diallo"];
+      const scores = [22, 68, 31, 45, 19];
+      const categories = scores.map(s => s >= 66 ? 'Élevé' : s >= 35 ? 'Modéré' : 'Faible');
+      CB.bar('c_0', names, [{ label: 'Score de risque', data: scores, color: categories.map(c => RISK_COLOR[c]) }]);
+      CB.doughnut('c_1', ['Faible', 'Modéré', 'Élevé'], [
+        categories.filter(c => c === 'Faible').length || 3,
+        categories.filter(c => c === 'Modéré').length || 1,
+        categories.filter(c => c === 'Élevé').length || 1,
+      ], [RISK_COLOR['Faible'], RISK_COLOR['Modéré'], RISK_COLOR['Élevé']]);
+    }
+
+    async function loadRiskFromApi() {
+      const badge = document.getElementById('dataSourceBadge');
+      if (!CB_API.isAuthenticated()) return false; // pas de jeton -> l'appel échouerait (401) à coup sûr, autant rester en démo directement
+      try {
+        const res = await CB_API.getInjuryRiskScores();
+        const scores = res.scores || [];
+        if (!scores.length) return false;
+
+        CB.bar('c_0', scores.map(s => s.name), [{
+          label: 'Score de risque', data: scores.map(s => s.score),
+          color: scores.map(s => RISK_COLOR[s.category] || CB.colors.muted),
+        }]);
+        CB.doughnut('c_1', ['Faible', 'Modéré', 'Élevé'], [
+          res.category_counts['Faible'] || 0,
+          res.category_counts['Modéré'] || 0,
+          res.category_counts['Élevé'] || 0,
+        ], [RISK_COLOR['Faible'], RISK_COLOR['Modéré'], RISK_COLOR['Élevé']]);
+
+        const topRisk = scores[0];
+        document.getElementById('riskSummaryText').textContent =
+          `Score calculé sur la charge GPS (ratio aigu/chronique) et l'historique médical de ${scores.length} joueurs. Risque le plus élevé : ${topRisk.name} (${topRisk.score}/100).`;
+
+        badge.className = 'badge badge-green';
+        badge.innerHTML = '<i class="fa-solid fa-plug-circle-check"></i> En direct (' + scores.length + ')';
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const live = await loadRiskFromApi();
+      if (!live) renderDemoRisk();
+    });
+  </script>
+</body>
+</html>

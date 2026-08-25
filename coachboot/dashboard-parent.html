@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord — Parent · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="dashboard-parent">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Tableau de bord</span>
+            <h1>Tableau de bord — Parent</h1>
+            <p>Vue personnalisée — Parent</p>
+          </div>
+          <div class="page-head__actions"><button type="button" class="btn btn-outline btn-sm" data-action="print"><i class="fa-solid fa-print"></i> Imprimer</button><button class="btn btn-primary btn-sm" id="exportBtn"><i class="fa-solid fa-file-export"></i> Exporter</button></div>
+        </div>
+        
+    <div class="stat-ticker" style="margin-bottom:20px;"><div class="stat-ticker__item"><b>Parent</b> Profil actif</div><div class="stat-ticker__item"><b>02 Août 2026</b> Aujourd'hui</div><div class="stat-ticker__item"><b>En ligne</b> Statut</div></div>
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Présence entraînements</span>
+    <div class="value"><span>96</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">%</span> </div>
+    <span class="foot">ce mois-ci</span>
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Prochain match</span>
+    <div class="value"><span>Sam.</span> </div>
+    <span class="foot">10h00 — Stade Municipal</span>
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Progression scolaire/sport</span>
+    <div class="value"><span>Bonne</span> </div>
+    <span class="foot">suivi double-projet</span>
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">État de santé</span>
+    <div class="value"><span>Aucune alerte</span> </div>
+    <span class="foot">selon le staff médical</span>
+  </div></div></div>
+    <div class="grid grid-12" style="margin-bottom:20px;">
+      <div style="grid-column:span 8;"><div class="card" >
+    <div class="card__head"><h3>Performance sur 10 matchs</h3><span class="muted">Indice composite</span></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="mainTrend"></canvas></div>
+    </div>
+    
+  </div></div>
+      <div style="grid-column:span 4;"><div class="card" >
+    <div class="card__head"><h3>Répartition de la charge</h3><span class="muted">Cette semaine</span></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="mainDoughnut"></canvas></div>
+    </div>
+    
+  </div></div>
+    </div>
+    <div class="grid grid-12">
+      <div style="grid-column:span 7;">
+        <div class="card">
+    <div class="card__head"><h3>Prochains matchs & résultats</h3><span class="muted">5 derniers</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="dashMatches" class="display simple-table" style="width:100%">
+        <thead><tr><th>Date</th><th>Domicile</th><th>Extérieur</th><th>Compétition</th><th>Score</th></tr></thead>
+        <tbody><tr><td>02 Août 2026</td><td>CoachBoot FC</td><td>FC Nord</td><td>Ligue 1 Amateur</td><td><span class="badge badge-blue">À venir</span></td></tr><tr><td>26 Juil. 2026</td><td>AS Littoral</td><td>CoachBoot FC</td><td>Ligue 1 Amateur</td><td>1 - 2</td></tr><tr><td>19 Juil. 2026</td><td>CoachBoot FC</td><td>Racing Club</td><td>Coupe Régionale</td><td>3 - 1</td></tr><tr><td>12 Juil. 2026</td><td>Étoile Sud</td><td>CoachBoot FC</td><td>Ligue 1 Amateur</td><td>0 - 0</td></tr><tr><td>05 Juil. 2026</td><td>CoachBoot FC</td><td>Union Est</td><td>Ligue 1 Amateur</td><td>2 - 2</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+      </div>
+      <div style="grid-column:span 5;">
+        <div class="card" >
+    <div class="card__head"><h3>Profil de performance</h3><span class="muted">Moyenne équipe</span></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="mainRadar"></canvas></div>
+    </div>
+    
+  </div>
+      </div>
+    </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        CB.line('mainTrend', ['M13','M14','M15','M16','M17','M18','M19','M20','M21','M22'], [{label:'Indice de performance', data:[68,71,69,74,77,73,80,82,79,84]}]);
+        CB.doughnut('mainDoughnut', ['Tactique','Physique','Technique','Récupération'], [32,28,25,15]);
+        CB.radar('mainRadar', ['Attaque','Défense','Physique','Technique','Mental','Discipline'], [{label:'Équipe', data:[78,71,84,80,75,88]}]);
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#dashMatches').DataTable({ pageLength: 5, lengthChange:false, searching:false, info:false, language:{ paginate:{previous:'‹',next:'›'} } }); }
+        document.getElementById('exportBtn')?.addEventListener('click', () => Swal.fire({icon:'success', title:'Export généré', text:'Le rapport PDF a été préparé (démonstration).', confirmButtonColor:'#2C8F5E'}));
+        
+      });
+    </script>
+</body>
+</html>

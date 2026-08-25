@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entraînements · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="trainings">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Planification</span>
+            <h1>Entraînements</h1>
+            <p>Suivi des séances et de la charge hebdomadaire</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="trainingsSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button type="button" class="btn btn-primary btn-sm" id="addTrainingBtn"><i class="fa-solid fa-plus"></i> Planifier une séance</button></div>
+        </div>
+
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Séances cette semaine</span>
+    <div class="value"><span id="kpiSessionsWeek">7</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Charge moyenne (RPE)</span>
+    <div class="value"><span id="kpiAvgRpe">6.2</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">/10</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Durée moyenne</span>
+    <div class="value"><span id="kpiAvgDuration">94</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)"> min</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Séances haute intensité (RPE ≥ 8)</span>
+    <div class="value"><span id="kpiHighIntensity">2</span> </div>
+
+  </div></div></div>
+    <div class="grid grid-12">
+      <div style="grid-column:span 7;"><div class="card" >
+    <div class="card__head"><h3>Charge d'entraînement (8 semaines)</h3></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="trainLoad"></canvas></div>
+    </div>
+
+  </div></div>
+      <div style="grid-column:span 5;"><div class="card">
+    <div class="card__head"><h3>Séances récentes</h3></div>
+    <div class="card__body" style="padding:0;">
+      <table id="trainList" class="display simple-table" style="width:100%">
+        <thead><tr><th>Jour</th><th>Type</th><th>Durée</th><th>RPE</th></tr></thead>
+        <tbody id="trainListBody"><tr><td>Lundi</td><td>Récupération active</td><td>45 min</td><td>3</td></tr><tr><td>Mardi</td><td>Tactique</td><td>75 min</td><td>6</td></tr><tr><td>Mercredi</td><td>Physique</td><td>60 min</td><td>8</td></tr><tr><td>Jeudi</td><td>Technique</td><td>60 min</td><td>5</td></tr><tr><td>Vendredi</td><td>Tactique pré-match</td><td>50 min</td><td>4</td></tr><tr><td>Samedi</td><td>Match</td><td>90 min</td><td>9</td></tr></tbody>
+      </table>
+    </div>
+  </div></div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    const TRAINING_DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+    function isoWeekKey(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+      return `${date.getUTCFullYear()}-S${String(weekNo).padStart(2, '0')}`;
+    }
+
+    function renderTrainingRow(t) {
+      const day = TRAINING_DAYS[new Date(t.session_date).getDay()];
+      return `<tr><td>${escapeHtml(day)} <span class="muted" style="font-size:11px;">${new Date(t.session_date).toLocaleDateString('fr-FR')}</span></td><td>${escapeHtml(t.type)}${t.team_name ? ` <span class="muted" style="font-size:11px;">(${escapeHtml(t.team_name)})</span>` : ''}</td><td>${t.duration_minutes} min</td><td>${t.rpe ?? '—'}</td></tr>`;
+    }
+
+    function renderTrainingsKpisAndChart(trainings) {
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 86400000);
+      const thisWeek = trainings.filter(t => new Date(t.session_date) >= weekAgo && new Date(t.session_date) <= now);
+      document.getElementById('kpiSessionsWeek').textContent = thisWeek.length;
+
+      const withRpe = trainings.filter(t => t.rpe != null);
+      const avgRpe = withRpe.length ? (withRpe.reduce((s, t) => s + Number(t.rpe), 0) / withRpe.length) : 0;
+      document.getElementById('kpiAvgRpe').textContent = avgRpe.toFixed(1);
+
+      const avgDuration = trainings.length ? Math.round(trainings.reduce((s, t) => s + Number(t.duration_minutes), 0) / trainings.length) : 0;
+      document.getElementById('kpiAvgDuration').textContent = avgDuration;
+
+      document.getElementById('kpiHighIntensity').textContent = trainings.filter(t => t.rpe != null && Number(t.rpe) >= 8).length;
+
+      // Charge (UA = RPE × durée en heures), regroupée par semaine ISO, 8 dernières semaines avec données.
+      const byWeek = new Map();
+      trainings.forEach(t => {
+        if (t.rpe == null) return;
+        const key = isoWeekKey(new Date(t.session_date));
+        byWeek.set(key, (byWeek.get(key) || 0) + Number(t.rpe) * (Number(t.duration_minutes) / 60));
+      });
+      const weeks = [...byWeek.keys()].sort().slice(-8);
+      CB.bar('trainLoad', weeks.length ? weeks : ['—'], [{ label: 'Charge (UA)', data: weeks.length ? weeks.map(w => Math.round(byWeek.get(w))) : [0] }]);
+    }
+
+    async function loadTrainingsFromApi() {
+      const badge = document.getElementById('trainingsSourceBadge');
+      try {
+        if (!CB_API.isAuthenticated()) throw new Error('not authenticated'); // pas de jeton -> l'appel échouerait (401) à coup sûr
+        const trainings = await CB_API.getTrainings();
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${trainings.length})`;
+        const recent = [...trainings].sort((a, b) => new Date(b.session_date) - new Date(a.session_date)).slice(0, 8);
+        document.getElementById('trainListBody').innerHTML = recent.length
+          ? recent.map(renderTrainingRow).join('')
+          : '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Aucune séance enregistrée.</td></tr>';
+        renderTrainingsKpisAndChart(trainings);
+        return true;
+      } catch {
+        CB.bar('trainLoad', ['S15','S16','S17','S18','S19','S20','S21','S22'], [{label:'Charge (UA)', data:[420,460,510,395,530,480,455,500]}]);
+        return false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTrainingsFromApi();
+
+      document.getElementById('addTrainingBtn').addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Planifier une séance',
+          html:
+            '<input id="swal-date" type="date" class="swal2-input" value="' + new Date().toISOString().slice(0, 10) + '">' +
+            '<select id="swal-type" class="swal2-input"><option>Tactique</option><option>Physique</option><option>Technique</option><option>Récupération</option><option>Tactique pré-match</option><option>Match</option></select>' +
+            '<input id="swal-duration" type="number" class="swal2-input" placeholder="Durée (minutes)" value="60">' +
+            '<input id="swal-rpe" type="number" min="0" max="10" class="swal2-input" placeholder="RPE (0-10)">',
+          confirmButtonText: 'Planifier', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            sessionDate: document.getElementById('swal-date').value,
+            type: document.getElementById('swal-type').value,
+            durationMinutes: Number(document.getElementById('swal-duration').value) || undefined,
+            rpe: document.getElementById('swal-rpe').value ? Number(document.getElementById('swal-rpe').value) : undefined,
+          }),
+        });
+        if (!formValues || !formValues.sessionDate) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour planifier une séance via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createTraining(formValues);
+          await Swal.fire({ icon: 'success', title: 'Séance planifiée', confirmButtonColor: '#2C8F5E' });
+          loadTrainingsFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

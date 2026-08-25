@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Équipes · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="teams">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Effectif</span>
+            <h1>Équipes</h1>
+            <p>5 équipes actives, de l'académie U17 au groupe senior</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="teamsSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button type="button" class="btn btn-primary btn-sm" id="addTeamBtn"><i class="fa-solid fa-plus"></i> Nouvelle équipe</button></div>
+        </div>
+
+    <div class="grid grid-3" id="teamsGrid">
+
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>Équipe A (Senior)</h3><span class="badge badge-green">Elite</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">Senior</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">24 joueurs</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">M. Lefevre</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>U23 Elite</h3><span class="badge badge-green">Elite</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">U23</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">22 joueurs</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">S. Martins</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>U19 Développement</h3><span class="badge badge-amber">Développement</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">U19</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">20 joueurs</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">R. Nguyen</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>U17 Académie</h3><span class="badge badge-blue">Académie</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">U17</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">18 joueurs</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">P. Costa</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>Équipe Féminine A</h3><span class="badge badge-green">Elite</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">Senior F</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">21 joueurs</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">L. Bernard</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    const LEVEL_BADGE = { Elite: 'green', 'Développement': 'amber', 'Académie': 'blue' };
+
+    function renderTeamCard(t) {
+      const badgeKind = LEVEL_BADGE[t.level] || 'grey';
+      return `
+        <div class="card" data-aos="fade-up">
+          <div class="card__head"><h3>${escapeHtml(t.name)}</h3><span class="badge badge-${badgeKind}">${escapeHtml(t.level)}</span></div>
+          <div class="card__body">
+            <table class="simple-table">
+              <tr><td>Catégorie</td><td style="text-align:right;font-weight:600;">${escapeHtml(t.category)}</td></tr>
+              <tr><td>Effectif</td><td style="text-align:right;font-weight:600;">${t.player_count} joueur${t.player_count === 1 ? '' : 's'}</td></tr>
+              <tr><td>Entraîneur</td><td style="text-align:right;font-weight:600;">${escapeHtml(t.coach_name || '—')}</td></tr>
+            </table>
+          </div>
+          <div class="card__foot"><a href="players.html">Voir l'effectif <i class="fa-solid fa-arrow-right"></i></a></div>
+        </div>`;
+    }
+
+    async function loadTeamsFromApi() {
+      const badge = document.getElementById('teamsSourceBadge');
+      if (!CB_API.isAuthenticated()) return false; // pas de jeton -> l'appel échouerait (401) à coup sûr, autant rester en démo directement
+      try {
+        const teams = await CB_API.getTeams();
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${teams.length})`;
+        document.getElementById('teamsGrid').innerHTML = teams.map(renderTeamCard).join('');
+        return true;
+      } catch {
+        return false; // reste sur les cartes de démonstration déjà rendues dans le HTML
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTeamsFromApi();
+
+      document.getElementById('addTeamBtn').addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Nouvelle équipe',
+          html:
+            '<input id="swal-name" class="swal2-input" placeholder="Nom de l\'équipe">' +
+            '<input id="swal-category" class="swal2-input" placeholder="Catégorie (ex. U19, Senior)">' +
+            '<select id="swal-level" class="swal2-input"><option value="Développement">Développement</option><option value="Elite">Elite</option><option value="Académie">Académie</option></select>' +
+            '<input id="swal-coach" class="swal2-input" placeholder="Entraîneur">',
+          confirmButtonText: 'Créer', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            name: document.getElementById('swal-name').value,
+            category: document.getElementById('swal-category').value,
+            level: document.getElementById('swal-level').value,
+            coach: document.getElementById('swal-coach').value,
+          }),
+        });
+        if (!formValues || !formValues.name || !formValues.category) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour créer une équipe via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createTeam(formValues);
+          await Swal.fire({ icon: 'success', title: 'Équipe créée', confirmButtonColor: '#2C8F5E' });
+          loadTeamsFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse GPS · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .gps-pulse-sm { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 5px; animation: gpsPulseSm 1.4s infinite; visibility: hidden; }
+    @keyframes gpsPulseSm { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+    /* .btn fixe `display: inline-flex`, ce qui l'emporte sur la règle UA [hidden]{display:none} :
+       sans cette règle, .btn[hidden] resterait visible malgré `el.hidden = true`. */
+    .btn[hidden] { display: none !important; }
+  </style>
+</head>
+<body data-page="cell-gps">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Cellule d'analyse</span>
+            <h1>Analyse GPS</h1>
+            <p>Distance, vitesse et charge externe.</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span class="badge badge-grey" id="cellGpsBadge"><i class="fa-solid fa-satellite-dish"></i> Démo</span>
+            <button class="btn btn-primary btn-sm" id="cellGpsStartBtn" type="button"><i class="fa-solid fa-play"></i> Démarrer</button>
+            <button class="btn btn-outline btn-sm" id="cellGpsPauseBtn" type="button" hidden><i class="fa-solid fa-pause"></i> Pause</button>
+            <button class="btn btn-outline btn-sm" id="cellGpsStopBtn" type="button" hidden><i class="fa-solid fa-stop"></i> Arrêter</button>
+          </div>
+        </div>
+
+    <div class="card" style="margin-bottom:20px;"><div class="card__body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+      <div class="ic" style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;"><i class="fa-solid fa-chart-line"></i></div>
+      <p style="margin:0;flex:1;min-width:200px;">Distance, vitesse et charge externe.</p>
+    </div></div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card__head"><h3>Player GPS Performance</h3><span class="muted"><span class="gps-pulse-sm" id="cellGpsPulse"></span><span id="cellGpsModeLabel">Données de démonstration</span></span></div>
+      <div class="grid" style="grid-template-columns:repeat(5,1fr);padding:20px;gap:16px;">
+        <div class="kpi"><span class="label">Distance parcourue</span><div class="value"><span id="cellGpsDistance">10.2</span><span style="font-size:13px;font-weight:600;color:var(--text-muted)">km</span></div></div>
+        <div class="kpi"><span class="label">Temps actif</span><div class="value"><span id="cellGpsDuration">87</span><span style="font-size:13px;font-weight:600;color:var(--text-muted)">min</span></div></div>
+        <div class="kpi"><span class="label">Vitesse moyenne</span><div class="value"><span id="cellGpsAvgSpeed">7.8</span><span style="font-size:13px;font-weight:600;color:var(--text-muted)">km/h</span></div></div>
+        <div class="kpi"><span class="label">Vitesse max</span><div class="value"><span id="cellGpsMaxSpeed">32</span><span style="font-size:13px;font-weight:600;color:var(--text-muted)">km/h</span></div></div>
+        <div class="kpi"><span class="label">Nombre de sprints</span><div class="value"><span id="cellGpsSprints">18</span></div></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2"><div class="card" >
+    <div class="card__head"><h3>Évolution — 8 dernières semaines</h3></div>
+    <div class="card__body">
+      <div style="height:280px;"><canvas id="c_0"></canvas></div>
+    </div>
+    
+  </div><div class="card">
+    <div class="card__head"><h3>Carte de chaleur — zones du terrain</h3><span class="muted">Zones du terrain</span></div>
+    <div class="card__body"><div id="c_1" class="heatmap"></div></div>
+    
+  </div></div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/gps-live.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+      CB.line('c_0', ['S1','S2','S3','S4','S5','S6','S7','S8'], [{label:'Indice', data:[62,65,64,70,73,71,77,80]}]);
+      CB.heatmap('c_1', Array.from({length:5}, () => Array.from({length:9}, () => Math.floor(Math.random()*80)+10)));
+
+      /* ---- Player GPS Performance : vitesse/distance/sprints en direct (Geolocation API réelle) ---- */
+      const DEMO = { distance: '10.2', duration: '87', avgSpeed: '7.8', maxSpeed: '32', sprints: '18' };
+      const startBtn = document.getElementById('cellGpsStartBtn');
+      const pauseBtn = document.getElementById('cellGpsPauseBtn');
+      const stopBtn = document.getElementById('cellGpsStopBtn');
+      const badge = document.getElementById('cellGpsBadge');
+      const pulse = document.getElementById('cellGpsPulse');
+      const modeLabel = document.getElementById('cellGpsModeLabel');
+      const distanceEl = document.getElementById('cellGpsDistance');
+      const durationEl = document.getElementById('cellGpsDuration');
+      const avgSpeedEl = document.getElementById('cellGpsAvgSpeed');
+      const maxSpeedEl = document.getElementById('cellGpsMaxSpeed');
+      const sprintsEl = document.getElementById('cellGpsSprints');
+
+      function fmt(n, d = 1) { return Number(n || 0).toFixed(d); }
+      function resetDemo() {
+        distanceEl.textContent = DEMO.distance;
+        durationEl.textContent = DEMO.duration;
+        avgSpeedEl.textContent = DEMO.avgSpeed;
+        maxSpeedEl.textContent = DEMO.maxSpeed;
+        sprintsEl.textContent = DEMO.sprints;
+        modeLabel.textContent = 'Données de démonstration';
+        pulse.style.visibility = 'hidden';
+      }
+
+      window.addEventListener('cbgps:start', () => {
+        badge.className = 'badge badge-amber'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Recherche…';
+        startBtn.hidden = true; pauseBtn.hidden = false; stopBtn.hidden = false;
+        pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+        modeLabel.textContent = 'Suivi en direct';
+      });
+      window.addEventListener('cbgps:pause', () => {
+        pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> Reprendre';
+        badge.className = 'badge badge-grey'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> En pause';
+        pulse.style.visibility = 'hidden';
+      });
+      window.addEventListener('cbgps:resume', () => {
+        pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      });
+      window.addEventListener('cbgps:tick', (e) => {
+        const s = e.detail;
+        badge.className = 'badge badge-green'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> En direct';
+        pulse.style.visibility = 'visible';
+        distanceEl.textContent = fmt(s.distanceKm, 2);
+        durationEl.textContent = Math.floor((s.durationSec || 0) / 60);
+        avgSpeedEl.textContent = fmt(s.avgSpeedKmh);
+        maxSpeedEl.textContent = fmt(s.maxSpeedKmh);
+        sprintsEl.textContent = s.sprintCount;
+      });
+      window.addEventListener('cbgps:stop', () => {
+        badge.className = 'badge badge-grey'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Session terminée';
+        startBtn.hidden = false; pauseBtn.hidden = true; stopBtn.hidden = true;
+        startBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Nouveau suivi';
+        pulse.style.visibility = 'hidden';
+        modeLabel.textContent = 'Dernière session (non sauvegardée — voir la page GPS pour l\'historique complet)';
+      });
+      window.addEventListener('cbgps:error', (e) => {
+        // Erreur transitoire (signal introuvable/délai dépassé) : le tracking continue en
+        // arrière-plan (CBGpsLive ne s'arrête que sur permission refusée) — ne pas réinitialiser
+        // toute l'interface, juste signaler le signal faible.
+        if (window.CBGpsLive && !CBGpsLive.isIdle()) {
+          badge.className = 'badge badge-red'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Signal faible…';
+          pulse.style.visibility = 'hidden';
+          return;
+        }
+        badge.className = 'badge badge-red'; badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Erreur';
+        startBtn.hidden = false; pauseBtn.hidden = true; stopBtn.hidden = true;
+        startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Démarrer';
+        resetDemo();
+        Swal.fire({ icon: 'warning', title: 'GPS indisponible', text: e.detail.message || "Impossible d'accéder à la position." });
+      });
+
+      startBtn.addEventListener('click', () => { if (window.CBGpsLive) CBGpsLive.start(); });
+      pauseBtn.addEventListener('click', () => {
+        if (!window.CBGpsLive) return;
+        if (CBGpsLive.isPaused()) CBGpsLive.resume(); else CBGpsLive.pause();
+      });
+      stopBtn.addEventListener('click', () => { if (window.CBGpsLive) CBGpsLive.stop(); });
+    });</script>
+</body>
+</html>

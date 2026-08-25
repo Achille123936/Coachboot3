@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Préparation physique · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="physical-prep">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h1>Préparation physique</h1>
+            <p>Suivi de la condition physique et de la charge d'entraînement</p>
+          </div>
+          
+        </div>
+        
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Vitesse max moyenne</span>
+    <div class="value"><span>31.2</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">km/h</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">VO2max moyen</span>
+    <div class="value"><span>58.2</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">ml/kg/min</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Ratio charge aiguë:chronique</span>
+    <div class="value"><span>1.08</span> </div>
+    
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Joueurs en surcharge</span>
+    <div class="value"><span>2</span> <small class="down"><i class="fa-solid fa-arrow-down"></i> -1</small></div>
+    
+  </div></div></div>
+    <div class="grid grid-2">
+      <div class="card" >
+    <div class="card__head"><h3>Évolution VO2max — équipe</h3></div>
+    <div class="card__body">
+      <div style="height:260px;"><canvas id="fitTrend"></canvas></div>
+    </div>
+    
+  </div>
+      <div class="card" >
+    <div class="card__head"><h3>Charge aiguë vs chronique</h3></div>
+    <div class="card__body">
+      <div style="height:260px;"><canvas id="fitLoad"></canvas></div>
+    </div>
+    
+  </div>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="card">
+    <div class="card__head"><h3>Tests physiques récents</h3></div>
+    <div class="card__body" style="padding:0;">
+      <table id="fitTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Joueur</th><th>Test</th><th>Résultat</th><th>Évolution</th></tr></thead>
+        <tbody><tr><td>Lucas Ferreira</td><td>Yo-Yo IR1</td><td>1800 m</td><td><span class="badge badge-green">+4%</span></td></tr><tr><td>Julien Moreau</td><td>Yo-Yo IR1</td><td>1920 m</td><td><span class="badge badge-red">-1%</span></td></tr><tr><td>Karim Benali</td><td>Yo-Yo IR1</td><td>2040 m</td><td><span class="badge badge-green">+4%</span></td></tr><tr><td>Thomas Girard</td><td>Yo-Yo IR1</td><td>2160 m</td><td><span class="badge badge-red">-1%</span></td></tr><tr><td>Amadou Diallo</td><td>Yo-Yo IR1</td><td>2280 m</td><td><span class="badge badge-green">+4%</span></td></tr><tr><td>Nicolas Petit</td><td>Yo-Yo IR1</td><td>2400 m</td><td><span class="badge badge-red">-1%</span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+    </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    CB.line('fitTrend', ['S1','S4','S8','S12','S16','S20'], [{label:'VO2max moyen', data:[54,55,56.5,57,58,58.2]}]);
+    CB.line('fitLoad', ['S17','S18','S19','S20','S21','S22'], [{label:'Aiguë', data:[480,510,470,530,500,495]},{label:'Chronique', data:[460,465,470,478,482,485]}]);
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#fitTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false  }); }
+  });</script>
+</body>
+</html>

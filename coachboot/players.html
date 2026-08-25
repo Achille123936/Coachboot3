@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joueurs · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="players">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Effectif</span>
+            <h1>Joueurs</h1>
+            <p>24 joueurs enregistrés sur l'ensemble des catégories</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="dataSourceBadge" style="margin-right:6px;"><i class="fa-solid fa-flask"></i> Démo</span><button class="btn btn-outline btn-sm"><i class="fa-solid fa-filter"></i> Filtres avancés</button><button class="btn btn-primary btn-sm" id="addPlayerBtn"><i class="fa-solid fa-plus"></i> Ajouter un joueur</button></div>
+        </div>
+        
+    <div class="grid grid-4" style="margin-bottom:20px;" id="playerCards">
+      
+        <div class="card player-card" data-aos="fade-up">
+          <div class="photo">LF</div>
+          <div class="name">Lucas Ferreira</div>
+          <div class="pos">Attaquant · #9</div>
+          <div style="margin:10px 0 4px;"><div class="progress"><span style="width:87%;"></span></div></div>
+          <div class="foot" style="font-size:11px;color:var(--text-muted)">Forme 87/100</div>
+        </div>
+        <div class="card player-card" data-aos="fade-up">
+          <div class="photo">JM</div>
+          <div class="name">Julien Moreau</div>
+          <div class="pos">Milieu · #8</div>
+          <div style="margin:10px 0 4px;"><div class="progress"><span style="width:74%;"></span></div></div>
+          <div class="foot" style="font-size:11px;color:var(--text-muted)">Forme 74/100</div>
+        </div>
+        <div class="card player-card" data-aos="fade-up">
+          <div class="photo">KB</div>
+          <div class="name">Karim Benali</div>
+          <div class="pos">Défenseur · #4</div>
+          <div style="margin:10px 0 4px;"><div class="progress"><span style="width:81%;"></span></div></div>
+          <div class="foot" style="font-size:11px;color:var(--text-muted)">Forme 81/100</div>
+        </div>
+        <div class="card player-card" data-aos="fade-up">
+          <div class="photo">TG</div>
+          <div class="name">Thomas Girard</div>
+          <div class="pos">Gardien · #1</div>
+          <div style="margin:10px 0 4px;"><div class="progress"><span style="width:90%;"></span></div></div>
+          <div class="foot" style="font-size:11px;color:var(--text-muted)">Forme 90/100</div>
+        </div>
+    </div>
+    <div class="card">
+    <div class="card__head"><h3>Effectif complet</h3><span class="muted">Cliquer sur une ligne pour le profil détaillé</span></div>
+    <div class="card__body" style="padding:0;">
+      <table id="playersTable" class="display simple-table" style="width:100%">
+        <thead><tr><th>Joueur</th><th>Poste</th><th>N°</th><th>Âge</th><th>Équipe</th><th>Forme</th><th>Statut</th></tr></thead>
+        <tbody><tr><td><span class="avatar-sm">LF</span> Lucas Ferreira</td><td>Attaquant</td><td>9</td><td>24</td><td>U23 Elite</td><td><div class="progress"><span style="width:87%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr><tr><td><span class="avatar-sm">JM</span> Julien Moreau</td><td>Milieu</td><td>8</td><td>27</td><td>Équipe A</td><td><div class="progress"><span style="width:74%;"></span></div></td><td><span class="badge badge-red">Blessé</span></td></tr><tr><td><span class="avatar-sm">KB</span> Karim Benali</td><td>Défenseur</td><td>4</td><td>29</td><td>Équipe A</td><td><div class="progress"><span style="width:81%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr><tr><td><span class="avatar-sm">TG</span> Thomas Girard</td><td>Gardien</td><td>1</td><td>26</td><td>Équipe A</td><td><div class="progress"><span style="width:90%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr><tr><td><span class="avatar-sm">AD</span> Amadou Diallo</td><td>Attaquant</td><td>11</td><td>21</td><td>U23 Elite</td><td><div class="progress"><span style="width:78%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr><tr><td><span class="avatar-sm">NP</span> Nicolas Petit</td><td>Milieu</td><td>6</td><td>25</td><td>Équipe A</td><td><div class="progress"><span style="width:69%;"></span></div></td><td><span class="badge badge-amber">Suspendu</span></td></tr><tr><td><span class="avatar-sm">RH</span> Rayan Haddad</td><td>Défenseur</td><td>5</td><td>23</td><td>U23 Elite</td><td><div class="progress"><span style="width:83%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr><tr><td><span class="avatar-sm">BR</span> Baptiste Rousseau</td><td>Milieu</td><td>10</td><td>28</td><td>Équipe A</td><td><div class="progress"><span style="width:92%;"></span></div></td><td><span class="badge badge-green">Disponible</span></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    let playersTableApi = null;
+
+    function renderPlayerRow(p) {
+      const name = escapeHtml(p.name);
+      const initials = escapeHtml(p.name.split(' ').map(n=>n[0]).join(''));
+      const statusKind = p.status === 'Disponible' ? 'green' : p.status === 'Blessé' ? 'red' : 'amber';
+      return [
+        '<span class="avatar-sm">' + initials + '</span> ' + name, escapeHtml(p.pos), p.num, p.age, escapeHtml(p.team),
+        '<div class="progress"><span style="width:' + Number(p.form || 0) + '%"></span></div>',
+        '<span class="badge badge-' + statusKind + '">' + escapeHtml(p.status) + '</span>',
+      ];
+    }
+
+    function initPlayersTable(rows) {
+      if (playersTableApi) { playersTableApi.destroy(); }
+      document.querySelector('#playersTable tbody').innerHTML = '';
+      rows.forEach(r => { const tr = document.createElement('tr'); r.forEach(c => { const td = document.createElement('td'); td.innerHTML = c; tr.appendChild(td); }); document.querySelector('#playersTable tbody').appendChild(tr); });
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+        playersTableApi = $('#playersTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false });
+      }
+      document.querySelectorAll('#playersTable tbody tr').forEach(row => row.addEventListener('click', () => {
+        Swal.fire({ title: row.cells[0].innerText.trim(), html: 'Profil détaillé du joueur — fiche complète disponible dans la version connectée à une base de données.', icon: 'info', confirmButtonColor:'#2C8F5E' });
+      }));
+    }
+
+    async function loadPlayersFromApi() {
+      if (!CB_API.isAuthenticated()) return false; // pas de jeton -> l'appel échouerait (401) à coup sûr, autant rester en démo directement
+      try {
+        const res = await CB_API.getPlayers();
+        const badge = document.getElementById('dataSourceBadge');
+        badge.className = 'badge badge-green'; badge.innerHTML = '<i class="fa-solid fa-plug-circle-check"></i> En direct (' + res.total + ')';
+        initPlayersTable(res.data.map(renderPlayerRow));
+        return true;
+      } catch (err) {
+        return false; // stay on the static demo rows already rendered server-side
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const live = await loadPlayersFromApi();
+      if (!live) { if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) { $('#playersTable').DataTable({ language: { search: "_INPUT_", searchPlaceholder: "Filtrer…", info: "_START_ à _END_ sur _TOTAL_", lengthMenu: "_MENU_ lignes", paginate: { previous: "‹", next: "›" }, zeroRecords: "Aucun résultat" }, pageLength: 6, lengthChange: false  }); }
+        document.querySelectorAll('#playersTable tbody tr').forEach(row => row.addEventListener('click', () => {
+          Swal.fire({ title: row.cells[0].innerText.trim(), html: 'Profil détaillé du joueur — fiche complète disponible dans la version connectée à une base de données.', icon: 'info', confirmButtonColor:'#2C8F5E' });
+        }));
+      }
+
+      document.getElementById('addPlayerBtn')?.addEventListener('click', async () => {
+        const { value: formValues } = await Swal.fire({
+          title: 'Ajouter un joueur',
+          html:
+            '<input id="swal-name" class="swal2-input" placeholder="Nom complet">' +
+            '<input id="swal-pos" class="swal2-input" placeholder="Poste (ex. Attaquant)">' +
+            '<input id="swal-num" class="swal2-input" type="number" placeholder="Numéro">' +
+            '<input id="swal-age" class="swal2-input" type="number" placeholder="Âge">' +
+            '<input id="swal-team" class="swal2-input" placeholder="Équipe">',
+          confirmButtonText: 'Ajouter', showCancelButton: true, confirmButtonColor: '#2C8F5E',
+          preConfirm: () => ({
+            name: document.getElementById('swal-name').value,
+            pos: document.getElementById('swal-pos').value,
+            num: document.getElementById('swal-num').value,
+            age: document.getElementById('swal-age').value,
+            team: document.getElementById('swal-team').value,
+          }),
+        });
+        if (!formValues || !formValues.name) return;
+        if (!CB_API.isAuthenticated()) {
+          return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous pour ajouter un joueur via l\'API en direct.', confirmButtonColor: '#2C8F5E' });
+        }
+        try {
+          await CB_API.createPlayer(formValues);
+          await Swal.fire({ icon: 'success', title: 'Joueur ajouté', confirmButtonColor: '#2C8F5E' });
+          loadPlayersFromApi();
+        } catch (err) {
+          Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

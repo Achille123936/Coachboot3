@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entraîner l'IA · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    .btn[hidden] { display: none !important; }
+    .ai-pipeline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-muted); }
+    .ai-pipeline .step { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; white-space: nowrap; }
+    .ai-pipeline i.fa-arrow-right { font-size: 10px; }
+
+    .ai-feature-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+    .ai-feature-list label { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; cursor: pointer; }
+
+    .ai-metric-tile { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius, 10px); padding: 14px 16px; text-align: center; }
+    .ai-metric-tile .n { font-family: var(--font-mono); font-size: 24px; font-weight: 700; }
+    .ai-metric-tile .u { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+
+    .ai-importance-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+    .ai-importance-row .name { width: 160px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ai-importance-row .bar-wrap { flex: 1; background: var(--bg-sunken); border-radius: 999px; height: 8px; overflow: hidden; }
+    .ai-importance-row .bar { height: 100%; background: var(--accent); border-radius: 999px; }
+    .ai-importance-row .pct { width: 42px; text-align: right; font-family: var(--font-mono); color: var(--text-muted); }
+  </style>
+</head>
+<body data-page="train-ai">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Intelligence artificielle</span>
+            <h1>Entraîner l'IA CoachBoot</h1>
+            <p>Pipeline réel (Python / pandas / scikit-learn) : charge un jeu de données, entraîne un modèle, évalue-le sur des données jamais vues, déploie-le.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;"><div class="card__body">
+          <div class="ai-pipeline">
+            <span class="step">Données CSV</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Nettoyage</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Normalisation</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Feature engineering (par 90 min)</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Split train/val/test</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">RandomForest</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step">Évaluation (test set)</span><i class="fa-solid fa-arrow-right"></i>
+            <span class="step" style="background:var(--accent-soft);color:var(--accent);border-color:transparent;">Modèle CoachBoot</span>
+          </div>
+        </div></div>
+
+        <div class="grid grid-12" style="margin-bottom:20px;" data-aos="fade-up">
+          <div style="grid-column:span 5;"><div class="card">
+            <div class="card__head"><h3><i class="fa-solid fa-file-csv"></i> 1. Charger un jeu de données</h3></div>
+            <div class="card__body">
+              <div class="field"><label>Fichier CSV (une ligne par joueur/match)</label><input type="file" id="aiCsvInput" accept=".csv"></div>
+              <p class="muted" style="font-size:12px;">Pas de jeu de données sous la main ? <a href="assets/sample-data/coachboot-sample-dataset.csv" download>Télécharger un exemple synthétique</a> pour tester le pipeline — <b>données fictives, à ne pas confondre avec de vraies statistiques de joueurs</b>.</p>
+              <div class="field"><label>Type de données <span style="color:var(--danger)">*</span></label>
+                <select id="aiDatasetType">
+                  <option value="">— À déclarer avant l'entraînement —</option>
+                  <option value="real">Réelles (vraies statistiques de joueurs/matchs)</option>
+                  <option value="synthetic">Synthétiques (démonstration, ex. le CSV d'exemple)</option>
+                  <option value="unknown">Je ne sais pas / mixte</option>
+                </select>
+                <p class="hint">Déclaration obligatoire, jamais déduite automatiquement — affichée ensuite à côté de chaque prédiction issue de ce modèle, pour ne jamais confondre une démonstration avec une vraie donnée de match.</p>
+              </div>
+              <div id="aiCsvSummary" class="badge badge-grey" style="margin-top:8px;" hidden></div>
+            </div>
+          </div></div>
+
+          <div style="grid-column:span 7;"><div class="card">
+            <div class="card__head"><h3><i class="fa-solid fa-sliders"></i> 2. Configurer l'entraînement</h3></div>
+            <div class="card__body">
+              <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                <div class="field" style="flex:1;min-width:160px;"><label>Nom du modèle</label><input type="text" id="aiModelName" placeholder="ex. Score de performance v1"></div>
+                <div class="field" style="flex:1;min-width:160px;"><label>Type de prédiction</label>
+                  <select id="aiTask">
+                    <option value="regression">Régression (nombre — ex. score de performance)</option>
+                    <option value="classification">Classification (catégorie — ex. risque de fatigue)</option>
+                  </select>
+                </div>
+                <div class="field" style="flex:1;min-width:160px;"><label>Cible à prédire</label><select id="aiTarget"><option value="">Chargez un CSV d'abord</option></select></div>
+              </div>
+              <div class="field">
+                <label>Features utilisées pour l'entraînement <button type="button" class="btn btn-ghost btn-sm" id="aiSelectAllBtn" style="padding:2px 8px;font-size:11px;">Tout sélectionner</button></label>
+                <div class="ai-feature-list" id="aiFeatureList"><p class="muted" style="font-size:12.5px;margin:0;">Chargez un CSV pour voir les colonnes disponibles.</p></div>
+              </div>
+              <button type="button" class="btn btn-primary btn-block" id="aiTrainBtn" disabled><i class="fa-solid fa-brain"></i> Entraîner le modèle</button>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;" id="aiResultsCard" hidden>
+          <div class="card__head"><h3><i class="fa-solid fa-chart-line"></i> 3. Résultats de l'entraînement</h3><span class="muted">Métriques calculées sur le test set — jamais vu pendant l'entraînement</span></div>
+          <div class="card__body">
+            <div class="grid grid-3" id="aiMetricsGrid" style="margin-bottom:18px;"></div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:260px;">
+                <h4 style="font-size:13px;margin:0 0 10px;">Importance des features (top 10)</h4>
+                <div id="aiImportances"></div>
+              </div>
+              <div style="flex:1;min-width:220px;">
+                <h4 style="font-size:13px;margin:0 0 10px;">Détail du split</h4>
+                <p id="aiSplitDetail" class="muted" style="font-size:12.5px;"></p>
+                <button type="button" class="btn btn-outline btn-sm" id="aiDeployBtn"><i class="fa-solid fa-rocket"></i> Déployer ce modèle</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card__head"><h3><i class="fa-solid fa-clock-rotate-left"></i> Historique des modèles</h3></div>
+          <div class="card__body" style="padding:0;">
+            <table class="simple-table" style="width:100%;" id="aiModelsTable">
+              <thead><tr><th>Nom</th><th>Type</th><th>Cible</th><th>Métrique clé (test)</th><th>Données</th><th>Statut</th><th>Créé le</th><th></th></tr></thead>
+              <tbody id="aiModelsBody"><tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Aucun modèle entraîné pour le moment.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;" id="aiPredictCard" hidden>
+          <div class="card__head"><h3><i class="fa-solid fa-wand-magic-sparkles"></i> 4. Analyser un nouveau joueur</h3><span class="muted" id="aiPredictModelName"></span></div>
+          <div class="card__body">
+            <div id="aiPredictForm" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;"></div>
+            <button type="button" class="btn btn-primary btn-sm" id="aiPredictBtn" style="margin-top:12px;"><i class="fa-solid fa-play"></i> Prédire</button>
+            <div id="aiPredictResult" style="margin-top:14px;"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    const els = {
+      csvInput: document.getElementById('aiCsvInput'),
+      csvSummary: document.getElementById('aiCsvSummary'),
+      datasetType: document.getElementById('aiDatasetType'),
+      modelName: document.getElementById('aiModelName'),
+      task: document.getElementById('aiTask'),
+      target: document.getElementById('aiTarget'),
+      featureList: document.getElementById('aiFeatureList'),
+      selectAllBtn: document.getElementById('aiSelectAllBtn'),
+      trainBtn: document.getElementById('aiTrainBtn'),
+      resultsCard: document.getElementById('aiResultsCard'),
+      metricsGrid: document.getElementById('aiMetricsGrid'),
+      importances: document.getElementById('aiImportances'),
+      splitDetail: document.getElementById('aiSplitDetail'),
+      deployBtn: document.getElementById('aiDeployBtn'),
+      modelsBody: document.getElementById('aiModelsBody'),
+      predictCard: document.getElementById('aiPredictCard'),
+      predictModelName: document.getElementById('aiPredictModelName'),
+      predictForm: document.getElementById('aiPredictForm'),
+      predictBtn: document.getElementById('aiPredictBtn'),
+      predictResult: document.getElementById('aiPredictResult'),
+    };
+
+    let csvFile = null;
+    let csvHeaders = [];
+    let lastTrainedModel = null; // { id, features (raw, no _par_90) }
+
+    function fmt(n, d = 2) { return Number(n || 0).toFixed(d); }
+
+    /* ---------------------------------------------------------------------
+     * 1) Lecture du CSV côté client — juste l'en-tête, pour construire l'UI.
+     * Le nettoyage/parsing réel des données se fait côté serveur (pandas).
+     * ------------------------------------------------------------------- */
+    els.csvInput.addEventListener('change', () => {
+      csvFile = els.csvInput.files[0] || null;
+      if (!csvFile) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const firstLine = String(reader.result).split(/\r?\n/)[0] || '';
+        csvHeaders = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, '')).filter(Boolean);
+        els.csvSummary.hidden = false;
+        els.csvSummary.className = 'badge badge-green';
+        els.csvSummary.innerHTML = `<i class="fa-solid fa-check"></i> ${csvHeaders.length} colonnes détectées`;
+
+        els.target.innerHTML = csvHeaders.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+        renderFeatureList();
+        els.trainBtn.disabled = false;
+      };
+      reader.readAsText(csvFile.slice(0, 65536)); // l'en-tête suffit, pas besoin de lire tout le fichier
+    });
+
+    function renderFeatureList() {
+      const targetCol = els.target.value;
+      els.featureList.innerHTML = csvHeaders.filter(h => h !== targetCol).map(h => `
+        <label><input type="checkbox" value="${escapeHtml(h)}" checked> ${escapeHtml(h)}</label>
+      `).join('');
+    }
+    els.target.addEventListener('change', renderFeatureList);
+    els.selectAllBtn.addEventListener('click', () => {
+      const boxes = els.featureList.querySelectorAll('input[type=checkbox]');
+      const allChecked = Array.from(boxes).every(b => b.checked);
+      boxes.forEach(b => { b.checked = !allChecked; });
+    });
+
+    /* ---------------------------------------------------------------------
+     * 2) Entraînement — envoie le CSV réel au backend (multipart), qui lance
+     * ml/train.py (Python/scikit-learn). Voir coachboot-backend/docs/API.md.
+     * ------------------------------------------------------------------- */
+    els.trainBtn.addEventListener('click', async () => {
+      if (!CB_API.isAuthenticated()) {
+        return Swal.fire({ icon: 'warning', title: 'Connexion requise', text: 'Connectez-vous (rôle entraîneur/directeur technique/data analyst) pour entraîner un modèle.', confirmButtonColor: '#2C8F5E' });
+      }
+      const features = Array.from(els.featureList.querySelectorAll('input[type=checkbox]:checked')).map(b => b.value);
+      if (!features.length) return Swal.fire({ icon: 'warning', title: 'Aucune feature sélectionnée', confirmButtonColor: '#2C8F5E' });
+      if (!els.target.value) return Swal.fire({ icon: 'warning', title: 'Choisissez une colonne cible', confirmButtonColor: '#2C8F5E' });
+      if (!els.modelName.value.trim()) return Swal.fire({ icon: 'warning', title: 'Donnez un nom au modèle', confirmButtonColor: '#2C8F5E' });
+      if (!els.datasetType.value) return Swal.fire({ icon: 'warning', title: 'Type de données requis', text: "Déclarez si ce jeu de données est réel ou synthétique avant d'entraîner — cette information sera affichée à chaque prédiction issue de ce modèle.", confirmButtonColor: '#2C8F5E' });
+
+      const form = new FormData();
+      form.append('csv', csvFile);
+      form.append('name', els.modelName.value.trim());
+      form.append('task', els.task.value);
+      form.append('target', els.target.value);
+      form.append('features', JSON.stringify(features));
+      form.append('dataset_type', els.datasetType.value);
+
+      els.trainBtn.disabled = true;
+      els.trainBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entraînement en cours…';
+      try {
+        const res = await fetch(`${CB_API.base}/ml/train`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${CB_API.token()}` },
+          body: form,
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || `Erreur HTTP ${res.status}`);
+
+        lastTrainedModel = { id: body.model.id, features: body.model.features.filter(f => !f.endsWith('_par_90')) };
+        renderResults(body);
+        await Swal.fire({ icon: 'success', title: 'Modèle entraîné', confirmButtonColor: '#2C8F5E' });
+        loadModels();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Échec de l\'entraînement', text: err.message, confirmButtonColor: '#2C8F5E' });
+      } finally {
+        els.trainBtn.disabled = false;
+        els.trainBtn.innerHTML = '<i class="fa-solid fa-brain"></i> Entraîner le modèle';
+      }
+    });
+
+    function renderResults(body) {
+      const task = body.model.task;
+      const m = body.model.metrics.test;
+      els.metricsGrid.innerHTML = task === 'regression'
+        ? `
+          <div class="ai-metric-tile"><div class="n">${fmt(m.rmse)}</div><div class="u">RMSE</div></div>
+          <div class="ai-metric-tile"><div class="n">${fmt(m.mae)}</div><div class="u">MAE</div></div>
+          <div class="ai-metric-tile"><div class="n">${fmt(m.r2, 3)}</div><div class="u">R²</div></div>`
+        : `
+          <div class="ai-metric-tile"><div class="n">${fmt(m.accuracy * 100, 1)}%</div><div class="u">Accuracy</div></div>
+          <div class="ai-metric-tile"><div class="n">${fmt(m.f1_weighted, 3)}</div><div class="u">F1 (pondéré)</div></div>
+          <div class="ai-metric-tile"><div class="n">${body.model.row_count_clean}</div><div class="u">Lignes utilisées</div></div>`;
+
+      const imp = (body.model.feature_importances || []).slice(0, 10);
+      const maxImp = imp.length ? imp[0].importance : 1;
+      els.importances.innerHTML = imp.map(f => `
+        <div class="ai-importance-row">
+          <span class="name" title="${escapeHtml(f.feature)}">${escapeHtml(f.feature)}</span>
+          <span class="bar-wrap"><span class="bar" style="width:${(f.importance / maxImp) * 100}%"></span></span>
+          <span class="pct">${fmt(f.importance * 100, 1)}%</span>
+        </div>`).join('');
+
+      els.splitDetail.textContent = `${body.split.train} lignes entraînement · ${body.split.validation} validation · ${body.split.test} test (${body.rows_dropped} ligne(s) écartée(s) au nettoyage).`;
+      els.resultsCard.hidden = false;
+      els.deployBtn.onclick = () => deployModel(body.model.id);
+    }
+
+    async function deployModel(id) {
+      try {
+        await CB_API.request(`/ml/models/${id}/deploy`, { method: 'POST' });
+        await Swal.fire({ icon: 'success', title: 'Modèle déployé', text: 'Ce modèle est maintenant utilisé pour les prédictions.', confirmButtonColor: '#2C8F5E' });
+        loadModels();
+        openPredictForm(id);
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Erreur', text: err.message, confirmButtonColor: '#2C8F5E' });
+      }
+    }
+
+    /* ---------------------------------------------------------------------
+     * 3) Historique des modèles
+     * ------------------------------------------------------------------- */
+    async function loadModels() {
+      if (!CB_API.isAuthenticated()) { els.modelsBody.innerHTML = '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Connectez-vous pour voir l\'historique des modèles.</td></tr>'; return; }
+      try {
+        const { models } = await CB_API.request('/ml/models');
+        if (!models.length) { els.modelsBody.innerHTML = '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Aucun modèle entraîné pour le moment.</td></tr>'; return; }
+        els.modelsBody.innerHTML = models.map(m => {
+          const key = m.task === 'regression' ? `R² ${fmt(m.metrics.test.r2, 3)}` : `Acc. ${fmt(m.metrics.test.accuracy * 100, 1)}%`;
+          const statusBadge = m.status === 'deployed' ? 'badge-green' : m.status === 'archived' ? 'badge-grey' : 'badge-amber';
+          const datasetBadge = { real: 'badge-green', synthetic: 'badge-amber', unknown: 'badge-grey' }[m.dataset_type] || 'badge-grey';
+          const datasetLabel = { real: 'Réelles', synthetic: 'Synthétiques', unknown: 'Non précisé' }[m.dataset_type] || 'Non précisé';
+          return `<tr>
+            <td>${escapeHtml(m.name)}</td>
+            <td>${m.task === 'regression' ? 'Régression' : 'Classification'}</td>
+            <td>${escapeHtml(m.target)}</td>
+            <td>${key}</td>
+            <td><span class="badge ${datasetBadge}">${datasetLabel}</span></td>
+            <td><span class="badge ${statusBadge}">${escapeHtml(m.status)}</span></td>
+            <td class="muted" style="font-size:11.5px;">${new Date(m.created_at).toLocaleDateString('fr-FR')}</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <button type="button" class="btn btn-ghost btn-sm" data-action="test-model" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-features='${JSON.stringify(m.features.filter(f => !f.endsWith("_par_90")))}' title="Tester"><i class="fa-solid fa-vial"></i></button>
+              ${m.status !== 'deployed' ? `<button type="button" class="btn btn-ghost btn-sm" data-action="deploy-model" data-id="${m.id}" title="Déployer"><i class="fa-solid fa-rocket"></i></button>` : ''}
+              <button type="button" class="btn btn-ghost btn-sm" data-action="delete-model" data-id="${m.id}" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join('');
+      } catch {
+        els.modelsBody.innerHTML = '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Connectez-vous pour voir l\'historique des modèles.</td></tr>';
+      }
+    }
+
+    document.getElementById('aiModelsTable').addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-action]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (btn.dataset.action === 'deploy-model') deployModel(id);
+      else if (btn.dataset.action === 'test-model') openPredictForm(id, btn.dataset.name, JSON.parse(btn.dataset.features));
+      else if (btn.dataset.action === 'delete-model') {
+        Swal.fire({ icon: 'warning', title: 'Supprimer ce modèle ?', showCancelButton: true, confirmButtonText: 'Supprimer', confirmButtonColor: '#C6414B' })
+          .then(async (r) => {
+            if (!r.isConfirmed) return;
+            await CB_API.request(`/ml/models/${id}`, { method: 'DELETE' });
+            loadModels();
+          });
+      }
+    });
+
+    /* ---------------------------------------------------------------------
+     * 4) Tester une prédiction — formulaire généré à partir des features brutes du modèle
+     * ------------------------------------------------------------------- */
+    function openPredictForm(id, name, features) {
+      const feats = features || (lastTrainedModel && lastTrainedModel.id === id ? lastTrainedModel.features : null);
+      if (!feats) return;
+      els.predictCard.hidden = false;
+      els.predictModelName.textContent = name || '';
+      els.predictForm.innerHTML = feats.map(f => `
+        <div class="field" style="margin:0;"><label>${escapeHtml(f)}</label><input type="number" step="any" data-feature="${escapeHtml(f)}" placeholder="0"></div>
+      `).join('');
+      els.predictBtn.onclick = () => runPrediction(id);
+      els.predictCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function runPrediction(id) {
+      const input = {};
+      els.predictForm.querySelectorAll('[data-feature]').forEach(inp => { input[inp.dataset.feature] = Number(inp.value || 0); });
+      // Chaque prédiction relance un process Python à froid (import pandas/numpy/
+      // scikit-learn + chargement du modèle) : ~2-3s, pas instantané — l'état de
+      // chargement évite que le bouton paraisse figé/cassé pendant l'attente.
+      els.predictBtn.disabled = true;
+      els.predictBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse en cours…';
+      els.predictResult.innerHTML = '';
+      try {
+        const result = await CB_API.request('/ml/predict', { method: 'POST', body: { model_id: id, input } });
+        const datasetLabel = { real: 'données réelles', synthetic: 'données synthétiques (démonstration)', unknown: 'type de données non précisé' }[result.data_source] || 'type de données non précisé';
+        const provenance = `<p class="muted" style="font-size:11px;margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--border);">
+          Modèle <code>${escapeHtml((result.model_version || result.model_id || '').slice(0, 8))}…</code>
+          — entraîné sur ${escapeHtml(datasetLabel)}
+          ${result.model_trained_at ? `le ${new Date(result.model_trained_at).toLocaleDateString('fr-FR')}` : ''}
+          — prédiction calculée le ${new Date(result.predicted_at).toLocaleString('fr-FR')}
+        </p>`;
+        if (result.probabilities) {
+          const rows = Object.entries(result.probabilities).sort((a, b) => b[1] - a[1])
+            .map(([label, p]) => `<div class="ai-importance-row"><span class="name">${escapeHtml(label)}</span><span class="bar-wrap"><span class="bar" style="width:${p * 100}%"></span></span><span class="pct">${fmt(p * 100, 1)}%</span></div>`).join('');
+          els.predictResult.innerHTML = `<div class="card__body" style="background:var(--bg-sunken);border-radius:var(--radius-sm);padding:14px;"><b>${escapeHtml(result.target)} : ${escapeHtml(result.prediction)}</b>${rows}${provenance}</div>`;
+        } else {
+          els.predictResult.innerHTML = `<div class="card__body" style="background:var(--bg-sunken);border-radius:var(--radius-sm);padding:14px;"><b>${escapeHtml(result.target)} : ${fmt(result.prediction, 1)}</b><p class="muted" style="font-size:12px;margin:4px 0 0;">± ${fmt(result.uncertainty_std, 1)} (incertitude estimée sur les arbres de la forêt)</p>${provenance}</div>`;
+        }
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Erreur de prédiction', text: err.message, confirmButtonColor: '#2C8F5E' });
+      } finally {
+        els.predictBtn.disabled = false;
+        els.predictBtn.innerHTML = '<i class="fa-solid fa-play"></i> Prédire';
+      }
+    }
+
+    loadModels();
+  });</script>
+</body>
+</html>

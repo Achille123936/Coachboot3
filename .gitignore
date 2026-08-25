@@ -1,0 +1,28 @@
+# Secrets — jamais poussés sur GitHub (voir coachboot-backend/.env.example pour le modèle)
+.env
+.env.local
+coachboot-backend/.env
+
+# Dépendances (réinstallées via npm install)
+node_modules/
+coachboot-backend/node_modules/
+
+# CoachBoot IA — modèles entraînés (binaires) et uploads temporaires, pas du code source
+coachboot-backend/ml/models/
+coachboot-backend/ml/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python (pipeline ml/)
+__pycache__/
+*.pyc
+
+# Outils locaux (pas du code du projet)
+.claude/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

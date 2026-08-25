@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificats · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body data-page="certificates">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Formation</span>
+            <h1>Certificats</h1>
+            <p>Vos certifications obtenues et en cours</p>
+          </div>
+          <div class="page-head__actions"><span class="badge badge-grey" id="certsSourceBadge"><i class="fa-solid fa-flask"></i> Démo</span></div>
+        </div>
+
+    <div class="grid grid-3" id="certsGrid">
+
+        <div class="card" data-aos="zoom-in">
+          <div class="card__body" style="text-align:center;padding:30px 18px;">
+            <i class="fa-solid fa-award" style="font-size:34px;color:var(--accent);margin-bottom:12px;"></i>
+            <h4 style="font-size:14.5px;">Certificat Licence B UEFA</h4>
+            <p style="font-size:12px;">Mars 2025</p>
+            <span class="badge badge-green">Délivré</span>
+          </div>
+        </div>
+        <div class="card" data-aos="zoom-in">
+          <div class="card__body" style="text-align:center;padding:30px 18px;">
+            <i class="fa-solid fa-award" style="font-size:34px;color:var(--accent);margin-bottom:12px;"></i>
+            <h4 style="font-size:14.5px;">Certificat Analyse de Performance</h4>
+            <p style="font-size:12px;">Novembre 2025</p>
+            <span class="badge badge-green">Délivré</span>
+          </div>
+        </div>
+        <div class="card" data-aos="zoom-in">
+          <div class="card__body" style="text-align:center;padding:30px 18px;">
+            <i class="fa-solid fa-award" style="font-size:34px;color:var(--accent-2);margin-bottom:12px;"></i>
+            <h4 style="font-size:14.5px;">Certificat Préparation Physique Avancée</h4>
+            <p style="font-size:12px;">En cours</p>
+            <span class="badge badge-amber">En cours</span>
+          </div>
+        </div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>
+    function renderCertificateCard(c) {
+      const delivered = c.status === 'Délivré';
+      const dateLabel = c.issued_date
+        ? new Date(c.issued_date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+        : 'En cours';
+      return `
+        <div class="card" data-aos="zoom-in">
+          <div class="card__body" style="text-align:center;padding:30px 18px;">
+            <i class="fa-solid fa-award" style="font-size:34px;color:var(--accent);margin-bottom:12px;"></i>
+            <h4 style="font-size:14.5px;">${escapeHtml(c.title)}</h4>
+            <p style="font-size:12px;">${escapeHtml(dateLabel)}</p>
+            <span class="badge ${delivered ? 'badge-green' : 'badge-amber'}">${escapeHtml(c.status)}</span>
+          </div>
+        </div>`;
+    }
+
+    async function loadCertificatesFromApi() {
+      const badge = document.getElementById('certsSourceBadge');
+      if (!CB_API.isAuthenticated()) return false; // pas de jeton -> l'appel échouerait (401) à coup sûr, autant rester en démo directement
+      try {
+        const certificates = await CB_API.getCertificates();
+        badge.className = 'badge badge-green';
+        badge.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> En direct (${certificates.length})`;
+        if (certificates.length) {
+          document.getElementById('certsGrid').innerHTML = certificates.map(renderCertificateCard).join('');
+        }
+        return true;
+      } catch {
+        return false; // reste sur les cartes de démonstration déjà rendues dans le HTML
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCertificatesFromApi);
+  </script>
+</body>
+</html>

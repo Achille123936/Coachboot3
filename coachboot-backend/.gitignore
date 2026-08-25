@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+
+# CoachBoot IA — modèles entraînés (binaires) et CSV temporaires, pas du code source
+# (les dossiers sont recréés automatiquement au démarrage du serveur — voir ml.routes.js)
+ml/models/
+ml/uploads/

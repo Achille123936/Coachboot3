@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS · CoachBoot Enterprise</title>
+  <meta name="description" content="Plateforme de performance football CoachBoot Enterprise">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%232C8F5E%22/><text x=%2216%22 y=%2222%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%2306170F%22 font-family=%22Arial%22 font-weight=%22bold%22>CB</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/css/jquery.dataTables.min.css">
+  <!-- Leaflet (carte GPS réelle) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+  <!-- CoachBoot design system -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    #gpsLiveMap { height: 340px; border-radius: var(--radius, 10px); overflow: hidden; position: relative; z-index: 0; }
+    .gps-map-overlay {
+      position: absolute; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 24px; background: var(--bg-sunken); color: var(--text-muted); font-size: 13px;
+    }
+    .gps-live-stat { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .gps-live-stat:last-child { border-bottom: none; }
+    .gps-live-stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); font-weight: 600; }
+    .gps-live-stat .val { font-family: var(--font-mono); font-size: 19px; font-weight: 700; }
+    .gps-pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 5px; animation: gpsPulse 1.4s infinite; }
+    @keyframes gpsPulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+    .gps-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    /* .btn fixe `display: inline-flex`, ce qui l'emporte sur la règle UA [hidden]{display:none}
+       (même spécificité, mais feuille auteur vs. feuille agent-utilisateur) : sans cette règle,
+       .btn[hidden] resterait visible malgré `el.hidden = true`. */
+    .btn[hidden] { display: none !important; }
+    .gps-map-mode { display:flex; gap:6px; position:absolute; top:10px; right:10px; z-index:410; }
+    .gps-map-mode button { font-size:11px; padding:5px 10px; }
+    @media print {
+      .sidebar, .topbar, .gps-toolbar, .ai-chat-fab, #gpsHistoryActions { display: none !important; }
+      #gpsReportView { display: block !important; }
+    }
+    #gpsReportView { display: none; }
+  </style>
+</head>
+<body data-page="gps">
+  <div class="app-shell">
+    <div id="app-sidebar"></div>
+    <div class="app-main">
+      <div id="app-header"></div>
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h1>GPS</h1>
+            <p>Suivi de la charge externe par capteurs GPS</p>
+          </div>
+          <div class="gps-toolbar">
+            <span class="badge badge-grey" id="gpsLiveBadge"><i class="fa-solid fa-satellite-dish"></i> GPS démo</span>
+            <button class="btn btn-primary btn-sm" id="gpsStartBtn" type="button"><i class="fa-solid fa-play"></i> Démarrer</button>
+            <button class="btn btn-outline btn-sm" id="gpsPauseBtn" type="button" hidden><i class="fa-solid fa-pause"></i> Pause</button>
+            <button class="btn btn-outline btn-sm" id="gpsStopBtn" type="button" hidden><i class="fa-solid fa-stop"></i> Arrêter</button>
+            <button class="btn btn-outline btn-sm" id="gpsSaveBtn" type="button" hidden><i class="fa-solid fa-floppy-disk"></i> Sauvegarder</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:20px;"><div class="card__body" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field" style="margin:0;flex:1;min-width:200px;"><label>Joueur suivi</label><select id="gpsPlayerSelect"><option value="">Chargement…</option></select></div>
+          <div class="field" style="margin:0;min-width:160px;"><label>Match / contexte</label><input type="text" id="gpsMatchLabel" placeholder="Entraînement du jour"></div>
+        </div></div>
+        <div class="card" style="margin-bottom:20px;" id="gpsErrorNote" hidden>
+          <div class="card__body" style="display:flex;gap:14px;align-items:center;">
+            <div class="ic" style="width:40px;height:40px;border-radius:10px;background:var(--accent-2-soft);color:var(--accent-2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <p style="margin:0;font-size:13px;color:var(--text-muted);" id="gpsErrorText"></p>
+          </div>
+        </div>
+
+    <div class="grid grid-4" style="margin-bottom:20px;" data-aos="fade-up"><div class="card"><div class="card__body kpi">
+    <span class="label">Distance <span id="gpsKpiDistanceLabel">moyenne / match</span></span>
+    <div class="value"><span id="gpsKpiDistance">10.8</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">km</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Vitesse max relevée</span>
+    <div class="value"><span id="gpsKpiMaxSpeed">33.4</span><span style="font-size:15px;font-weight:600;color:var(--text-muted)">km/h</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Sprints <span id="gpsKpiSprintsLabel">/ match</span></span>
+    <div class="value"><span id="gpsKpiSprints">22</span> </div>
+
+  </div></div><div class="card"><div class="card__body kpi">
+    <span class="label">Accélérations <span id="gpsKpiAccelLabel">fortes</span></span>
+    <div class="value"><span id="gpsKpiAccel">31</span> </div>
+
+  </div></div></div>
+    <div class="grid grid-12" style="margin-bottom:20px;">
+      <div style="grid-column:span 7;"><div class="card">
+    <div class="card__head"><h3>Carte GPS en direct</h3><span class="muted" id="gpsElapsed">00:00</span></div>
+    <div class="card__body" style="padding:0;position:relative;">
+      <div id="gpsLiveMap"></div>
+      <div class="gps-map-mode">
+        <button class="btn btn-primary btn-sm" id="gpsModeTrace" type="button">Trajet</button>
+        <button class="btn btn-outline btn-sm" id="gpsModeHeat" type="button">Heatmap</button>
+      </div>
+      <div class="gps-map-overlay" id="gpsMapOverlay">
+        <div><i class="fa-solid fa-satellite-dish" style="font-size:22px;margin-bottom:8px;display:block;"></i>
+        Cliquez sur « Démarrer » pour localiser l'appareil en direct sur la carte.<br>
+        <small>Nécessite une connexion sécurisée (https/localhost) et l'autorisation de localisation du navigateur.</small></div>
+      </div>
+    </div>
+  </div></div>
+      <div style="grid-column:span 5;"><div class="card">
+    <div class="card__head"><h3>Données physiques en direct</h3><span class="badge badge-grey" id="gpsSignalBadge">Hors ligne</span></div>
+    <div class="card__body" style="padding-top:4px;">
+      <div class="gps-live-stat"><span class="lbl"><span class="gps-pulse" style="visibility:hidden;" id="gpsPulseDot"></span>Vitesse instantanée</span><span class="val" id="gpsCurrentSpeed">0.0 <small style="font-size:12px;color:var(--text-muted);">km/h</small></span></div>
+      <div class="gps-live-stat"><span class="lbl">Distance cumulée</span><span class="val" id="gpsLiveDistance">0.00 <small style="font-size:12px;color:var(--text-muted);">km</small></span></div>
+      <div class="gps-live-stat"><span class="lbl">Vitesse moyenne</span><span class="val" id="gpsAvgSpeed">0.0 <small style="font-size:12px;color:var(--text-muted);">km/h</small></span></div>
+      <div class="gps-live-stat"><span class="lbl">Distance haute intensité</span><span class="val" id="gpsHiDistance">0.00 <small style="font-size:12px;color:var(--text-muted);">km</small></span></div>
+      <div class="gps-live-stat"><span class="lbl">Décélérations fortes</span><span class="val" id="gpsDecel">0</span></div>
+      <div class="gps-live-stat"><span class="lbl">Altitude</span><span class="val" id="gpsAltitude">—</span></div>
+      <div class="gps-live-stat"><span class="lbl">Précision GPS</span><span class="val" id="gpsAccuracy">—</span></div>
+    </div>
+  </div></div>
+    </div>
+    <div class="grid grid-12" style="margin-bottom:20px;">
+      <div style="grid-column:span 7;"><div class="card" >
+    <div class="card__head"><h3>Distance parcourue — 5 derniers matchs</h3></div>
+    <div class="card__body">
+      <div style="height:270px;"><canvas id="gpsDistance"></canvas></div>
+    </div>
+
+  </div></div>
+      <div style="grid-column:span 5;"><div class="card">
+    <div class="card__head"><h3>Carte de chaleur — occupation du terrain</h3><span class="muted">Match J22</span></div>
+    <div class="card__body"><div id="gpsHeatmap" class="heatmap"></div></div>
+
+  </div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card__head"><h3>Historique des sessions GPS</h3><span class="muted">Stocké localement — synchronisé si l'API est connectée</span></div>
+      <div class="card__body" style="padding:0;">
+        <table class="simple-table" style="width:100%;" id="gpsHistoryTable">
+          <thead><tr><th>Date</th><th>Joueur</th><th>Contexte</th><th>Durée</th><th>Distance</th><th>V. max</th><th>Sprints</th><th></th></tr></thead>
+          <tbody id="gpsHistoryBody"><tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Aucune session enregistrée pour le moment.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Rapport imprimable (masqué à l'écran, affiché uniquement via window.print()) -->
+    <div id="gpsReportView">
+      <h1 style="font-family:var(--font-display);">GPS Performance Report — CoachBoot Enterprise</h1>
+      <p><b>Joueur :</b> <span id="rptPlayer"></span> &nbsp; <b>Date :</b> <span id="rptDate"></span> &nbsp; <b>Contexte :</b> <span id="rptMatch"></span></p>
+      <h3>Résumé physique</h3>
+      <ul>
+        <li>Distance : <span id="rptDistance"></span> km</li>
+        <li>Vitesse max : <span id="rptMaxSpeed"></span> km/h</li>
+        <li>Vitesse moyenne : <span id="rptAvgSpeed"></span> km/h</li>
+        <li>Sprints (≥22 km/h) : <span id="rptSprints"></span> (dont intenses ≥25 km/h : <span id="rptIntenseSprints"></span>)</li>
+        <li>Accélérations fortes : <span id="rptAccel"></span> — Décélérations fortes : <span id="rptDecel"></span></li>
+        <li>Zones couvertes du terrain : <span id="rptZones"></span></li>
+      </ul>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.13.11/js/jquery.dataTables.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.1/apexcharts.min.js"></script>
+  <!-- AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+  <!-- Leaflet (carte GPS réelle) + plugin heatmap -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+
+  <!-- CoachBoot shared JS -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script src="assets/js/gps-live.js"></script>
+  <script src="assets/js/gps-storage.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => {
+    CB.line('gpsDistance', ['J18','J19','J20','J21','J22'], [{label:'Distance (km)', data:[10.2,11.1,9.8,11.4,10.6]},{label:'Distance haute intensité (km)', data:[1.6,2.1,1.5,2.0,1.9]}]);
+    CB.heatmap('gpsHeatmap', Array.from({length:5}, () => Array.from({length:9}, () => Math.floor(Math.random()*80)+10)));
+
+    /* ---- Suivi GPS automatique en direct (Geolocation API réelle) ---- */
+    const DEMO_KPI = { distance: '10.8', sprints: '22', maxSpeed: '33.4', accel: '27' };
+    const startBtn = document.getElementById('gpsStartBtn');
+    const pauseBtn = document.getElementById('gpsPauseBtn');
+    const stopBtn = document.getElementById('gpsStopBtn');
+    const saveBtn = document.getElementById('gpsSaveBtn');
+    const playerSelect = document.getElementById('gpsPlayerSelect');
+    const matchLabelInput = document.getElementById('gpsMatchLabel');
+    const badge = document.getElementById('gpsLiveBadge');
+    const signalBadge = document.getElementById('gpsSignalBadge');
+    const pulseDot = document.getElementById('gpsPulseDot');
+    const mapOverlay = document.getElementById('gpsMapOverlay');
+    const errorNote = document.getElementById('gpsErrorNote');
+    const errorText = document.getElementById('gpsErrorText');
+    const modeTraceBtn = document.getElementById('gpsModeTrace');
+    const modeHeatBtn = document.getElementById('gpsModeHeat');
+
+    const kpiDistance = document.getElementById('gpsKpiDistance');
+    const kpiMaxSpeed = document.getElementById('gpsKpiMaxSpeed');
+    const kpiSprints = document.getElementById('gpsKpiSprints');
+    const kpiAccel = document.getElementById('gpsKpiAccel');
+    const kpiDistanceLabel = document.getElementById('gpsKpiDistanceLabel');
+    const kpiSprintsLabel = document.getElementById('gpsKpiSprintsLabel');
+    const kpiAccelLabel = document.getElementById('gpsKpiAccelLabel');
+
+    const currentSpeedEl = document.getElementById('gpsCurrentSpeed');
+    const liveDistanceEl = document.getElementById('gpsLiveDistance');
+    const avgSpeedEl = document.getElementById('gpsAvgSpeed');
+    const hiDistanceEl = document.getElementById('gpsHiDistance');
+    const decelEl = document.getElementById('gpsDecel');
+    const altitudeEl = document.getElementById('gpsAltitude');
+    const accuracyEl = document.getElementById('gpsAccuracy');
+    const elapsedEl = document.getElementById('gpsElapsed');
+
+    let map, pathLine, marker, heatLayer, mapMode = 'trace', timerInterval, pendingSummary = null;
+
+    function fmt(n, d = 1) { return Number(n || 0).toFixed(d); }
+    function fmtDuration(sec) {
+      sec = Math.floor(sec || 0);
+      return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+    }
+
+    /* ---- Sélecteur de joueur : liste réelle si connecté, sinon effectif de démonstration ---- */
+    async function loadPlayers() {
+      try {
+        if (!CB_API.isAuthenticated()) throw new Error('demo');
+        const { data } = await CB_API.getPlayers();
+        if (!data || !data.length) throw new Error('empty');
+        playerSelect.innerHTML = data.map(p => `<option value="${p.id}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+      } catch {
+        const demo = [
+          { id: 'demo-1', name: 'Lucas Nkomo' }, { id: 'demo-2', name: 'Amara Diallo' },
+          { id: 'demo-3', name: 'Julien Petit' }, { id: 'demo-4', name: 'Karim Haddad' },
+        ];
+        playerSelect.innerHTML = demo.map(p => `<option value="${p.id}" data-name="${p.name}">${p.name}</option>`).join('');
+      }
+    }
+    loadPlayers();
+
+    /* ---- Carte Leaflet : trajet en direct + heatmap d'intensité des déplacements ---- */
+    function ensureMap(lat, lng) {
+      if (map || !window.L) return;
+      map = L.map('gpsLiveMap').setView([lat, lng], 17);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(map);
+      pathLine = L.polyline([], { color: '#2C8F5E', weight: 4 }).addTo(map);
+      marker = L.circleMarker([lat, lng], { radius: 7, color: '#2C8F5E', fillColor: '#2C8F5E', fillOpacity: 1 }).addTo(map);
+      if (window.L.heatLayer) {
+        heatLayer = L.heatLayer([], { radius: 22, blur: 18, maxZoom: 19 });
+      } else {
+        modeHeatBtn.disabled = true;
+        modeHeatBtn.title = 'Plugin heatmap indisponible (bloqué par le réseau/CDN)';
+      }
+      setMapMode(mapMode);
+    }
+
+    function setMapMode(mode) {
+      mapMode = mode;
+      modeTraceBtn.classList.toggle('btn-primary', mode === 'trace');
+      modeTraceBtn.classList.toggle('btn-outline', mode !== 'trace');
+      modeHeatBtn.classList.toggle('btn-primary', mode === 'heat');
+      modeHeatBtn.classList.toggle('btn-outline', mode !== 'heat');
+      if (!map) return;
+      if (mode === 'trace') {
+        if (heatLayer && map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+        if (pathLine && !map.hasLayer(pathLine)) pathLine.addTo(map);
+        if (marker && !map.hasLayer(marker)) marker.addTo(map);
+      } else if (heatLayer) {
+        if (pathLine && map.hasLayer(pathLine)) map.removeLayer(pathLine);
+        if (marker && map.hasLayer(marker)) map.removeLayer(marker);
+        if (!map.hasLayer(heatLayer)) heatLayer.addTo(map);
+      }
+    }
+    modeTraceBtn.addEventListener('click', () => setMapMode('trace'));
+    modeHeatBtn.addEventListener('click', () => setMapMode('heat'));
+
+    /* ---- Zones du terrain couvertes (grille NxN dérivée de l'empreinte GPS réelle) ---- */
+    function computeZonesCovered(points, gridSize = 6) {
+      if (!points || !points.length) return { covered: 0, total: gridSize * gridSize };
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      points.forEach(p => {
+        minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
+        minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
+      });
+      const latSpan = Math.max(maxLat - minLat, 1e-6);
+      const lngSpan = Math.max(maxLng - minLng, 1e-6);
+      const cells = new Set();
+      points.forEach(p => {
+        const cx = Math.min(gridSize - 1, Math.floor(((p.lng - minLng) / lngSpan) * gridSize));
+        const cy = Math.min(gridSize - 1, Math.floor(((p.lat - minLat) / latSpan) * gridSize));
+        cells.add(cy * gridSize + cx);
+      });
+      return { covered: cells.size, total: gridSize * gridSize };
+    }
+
+    /* ---- Historique des sessions (localStorage, voir assets/js/gps-storage.js) ---- */
+    const historyTbody = document.getElementById('gpsHistoryBody');
+    function renderHistory() {
+      const tbody = historyTbody;
+      const list = CBGpsStorage.list();
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="color:var(--text-muted);text-align:center;padding:20px;">Aucune session enregistrée pour le moment.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(s => `
+        <tr>
+          <td>${s.sessionDate}</td>
+          <td>${escapeHtml(s.playerName)}</td>
+          <td>${escapeHtml(s.matchLabel || '—')}</td>
+          <td>${fmtDuration(s.durationSec)} min</td>
+          <td>${fmt(s.distanceKm, 2)} km</td>
+          <td>${fmt(s.maxSpeedKmh)} km/h</td>
+          <td>${s.sprintCount}</td>
+          <td style="text-align:right;white-space:nowrap;">
+            ${s.syncedToServer ? '<i class="fa-solid fa-cloud" style="color:var(--accent);margin-right:6px;" title="Synchronisé avec le serveur"></i>' : ''}
+            <button type="button" class="btn btn-ghost btn-sm" data-action="export-session" data-id="${s.id}" title="Exporter le rapport"><i class="fa-solid fa-file-export"></i></button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="delete-session" data-id="${s.id}" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`).join('');
+    }
+    renderHistory();
+
+    // Délégation d'événements : un seul écouteur sur le tbody plutôt que de re-lier
+    // chaque bouton à chaque renderHistory() (les lignes sont recréées à chaque appel).
+    historyTbody.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-action]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (btn.dataset.action === 'export-session') exportReport(id);
+      else if (btn.dataset.action === 'delete-session') { CBGpsStorage.remove(id); renderHistory(); }
+    });
+
+    /* ---- Export « GPS Performance Report » imprimable (Ctrl+P / Enregistrer en PDF) ---- */
+    function exportReport(id) {
+      const s = CBGpsStorage.get(id);
+      if (!s) return;
+      const zones = computeZonesCovered(s.points);
+      document.getElementById('rptPlayer').textContent = s.playerName;
+      document.getElementById('rptDate').textContent = s.sessionDate;
+      document.getElementById('rptMatch').textContent = s.matchLabel || '—';
+      document.getElementById('rptDistance').textContent = fmt(s.distanceKm, 2);
+      document.getElementById('rptMaxSpeed').textContent = fmt(s.maxSpeedKmh);
+      document.getElementById('rptAvgSpeed').textContent = fmt(s.avgSpeedKmh);
+      document.getElementById('rptSprints').textContent = s.sprintCount;
+      document.getElementById('rptIntenseSprints').textContent = s.intenseSprintCount;
+      document.getElementById('rptAccel').textContent = s.accelerationCount;
+      document.getElementById('rptDecel').textContent = s.decelerationCount;
+      document.getElementById('rptZones').textContent = `${zones.covered} / ${zones.total}`;
+      window.print();
+    }
+
+    /* ---- Sauvegarde de la session (localStorage + synchronisation API si connecté) ---- */
+    async function saveCurrentSession(summary) {
+      if (!summary) return;
+      const opt = playerSelect.selectedOptions[0];
+      const playerId = playerSelect.value || null;
+      const playerName = opt ? opt.dataset.name : 'Joueur';
+      const matchLabel = matchLabelInput.value.trim();
+      const sessionDate = new Date().toISOString().slice(0, 10);
+
+      const record = CBGpsStorage.save({ playerId, playerName, matchLabel, sessionDate, ...summary });
+      renderHistory();
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Enregistré';
+
+      if (CB_API.isAuthenticated() && playerId && !playerId.startsWith('demo-')) {
+        try {
+          await CB_API.saveGpsSession({ playerId, matchId: null, sessionDate, ...summary });
+          CBGpsStorage.markSynced(record.id);
+          renderHistory();
+        } catch { /* reste disponible en local ; pas grave si la synchronisation serveur échoue */ }
+      }
+    }
+
+    /* ---- États de l'interface pilotés par le module CBGpsLive ---- */
+    function resetDemoView() {
+      kpiDistanceLabel.textContent = 'moyenne / match';
+      kpiSprintsLabel.textContent = '/ match';
+      kpiAccelLabel.textContent = 'fortes';
+      kpiDistance.textContent = DEMO_KPI.distance;
+      kpiSprints.textContent = DEMO_KPI.sprints;
+      kpiMaxSpeed.textContent = DEMO_KPI.maxSpeed;
+      kpiAccel.textContent = DEMO_KPI.accel;
+      currentSpeedEl.innerHTML = '0.0 <small style="font-size:12px;color:var(--text-muted);">km/h</small>';
+      liveDistanceEl.innerHTML = '0.00 <small style="font-size:12px;color:var(--text-muted);">km</small>';
+      avgSpeedEl.innerHTML = '0.0 <small style="font-size:12px;color:var(--text-muted);">km/h</small>';
+      hiDistanceEl.innerHTML = '0.00 <small style="font-size:12px;color:var(--text-muted);">km</small>';
+      decelEl.textContent = '0';
+      altitudeEl.textContent = '—';
+      accuracyEl.textContent = '—';
+      elapsedEl.textContent = '00:00';
+      signalBadge.className = 'badge badge-grey';
+      signalBadge.textContent = 'Hors ligne';
+      pulseDot.style.visibility = 'hidden';
+    }
+
+    window.addEventListener('cbgps:start', () => {
+      badge.className = 'badge badge-green';
+      badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> GPS en direct';
+      startBtn.hidden = true; saveBtn.hidden = true;
+      pauseBtn.hidden = false; stopBtn.hidden = false;
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+      saveBtn.disabled = false;
+      signalBadge.className = 'badge badge-amber';
+      signalBadge.textContent = 'Recherche du signal…';
+      kpiDistanceLabel.textContent = '(direct)';
+      kpiSprintsLabel.textContent = '(direct)';
+      kpiAccelLabel.textContent = '(direct)';
+      errorNote.hidden = true;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        elapsedEl.textContent = fmtDuration(CBGpsLive.getState().durationSec);
+      }, 1000);
+    });
+
+    window.addEventListener('cbgps:pause', () => {
+      pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> Reprendre';
+      signalBadge.className = 'badge badge-grey';
+      signalBadge.textContent = 'En pause';
+      pulseDot.style.visibility = 'hidden';
+    });
+
+    window.addEventListener('cbgps:resume', () => {
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    });
+
+    window.addEventListener('cbgps:tick', (e) => {
+      const s = e.detail;
+      kpiDistance.textContent = fmt(s.distanceKm, 2);
+      kpiMaxSpeed.textContent = fmt(s.maxSpeedKmh);
+      kpiSprints.textContent = s.sprintCount;
+      kpiAccel.textContent = s.accelerationCount;
+      currentSpeedEl.innerHTML = `${fmt(s.currentSpeedKmh)} <small style="font-size:12px;color:var(--text-muted);">km/h</small>`;
+      liveDistanceEl.innerHTML = `${fmt(s.distanceKm, 2)} <small style="font-size:12px;color:var(--text-muted);">km</small>`;
+      avgSpeedEl.innerHTML = `${fmt(s.avgSpeedKmh)} <small style="font-size:12px;color:var(--text-muted);">km/h</small>`;
+      hiDistanceEl.innerHTML = `${fmt(s.highIntensityKm, 2)} <small style="font-size:12px;color:var(--text-muted);">km</small>`;
+      decelEl.textContent = s.decelerationCount;
+      altitudeEl.textContent = s.altitudeM != null ? `${Math.round(s.altitudeM)} m` : '—';
+      accuracyEl.textContent = s.accuracyM != null ? `± ${Math.round(s.accuracyM)} m` : '—';
+      signalBadge.className = 'badge badge-green';
+      signalBadge.textContent = 'Signal actif';
+      pulseDot.style.visibility = 'visible';
+      if (s.point) {
+        mapOverlay.style.display = 'none';
+        ensureMap(s.point.lat, s.point.lng);
+        if (pathLine) pathLine.addLatLng([s.point.lat, s.point.lng]);
+        if (marker) marker.setLatLng([s.point.lat, s.point.lng]);
+        if (heatLayer) heatLayer.addLatLng([s.point.lat, s.point.lng, Math.min(1, (s.currentSpeedKmh || 0) / 25)]);
+        if (map) map.panTo([s.point.lat, s.point.lng]);
+      }
+    });
+
+    window.addEventListener('cbgps:stop', (e) => {
+      pendingSummary = e.detail.summary;
+      pauseBtn.hidden = true; stopBtn.hidden = true;
+      startBtn.hidden = false; saveBtn.hidden = false;
+      startBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Nouveau suivi';
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Sauvegarder';
+      signalBadge.className = 'badge badge-grey';
+      signalBadge.textContent = 'Session terminée';
+      pulseDot.style.visibility = 'hidden';
+      clearInterval(timerInterval);
+    });
+
+    window.addEventListener('cbgps:error', (e) => {
+      // Un code 2/3 (signal introuvable/délai dépassé) est transitoire : CBGpsLive continue
+      // le watchPosition en arrière-plan et se rétablira tout seul au prochain relevé. Ne
+      // réinitialiser toute la barre d'outils (boutons, carte, KPIs) que lorsque le tracking
+      // est réellement arrêté (permission refusée, code 1) — sinon un simple passage sous un
+      // arbre ferait perdre la session en cours à l'écran alors qu'elle continue en réalité.
+      if (window.CBGpsLive && !CBGpsLive.isIdle()) {
+        signalBadge.className = 'badge badge-red';
+        signalBadge.textContent = 'Signal faible…';
+        pulseDot.style.visibility = 'hidden';
+        return;
+      }
+      errorNote.hidden = false;
+      errorText.textContent = e.detail.message || "Impossible d'accéder à la position GPS.";
+      badge.className = 'badge badge-grey';
+      badge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> GPS démo';
+      startBtn.hidden = false; pauseBtn.hidden = true; stopBtn.hidden = true; saveBtn.hidden = true;
+      startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Démarrer';
+      signalBadge.className = 'badge badge-red';
+      signalBadge.textContent = 'Signal perdu';
+      clearInterval(timerInterval);
+      mapOverlay.style.display = 'flex';
+      resetDemoView();
+    });
+
+    startBtn.addEventListener('click', () => { if (window.CBGpsLive) CBGpsLive.start(); });
+    pauseBtn.addEventListener('click', () => {
+      if (!window.CBGpsLive) return;
+      if (CBGpsLive.isPaused()) CBGpsLive.resume(); else CBGpsLive.pause();
+    });
+    stopBtn.addEventListener('click', () => { if (window.CBGpsLive) CBGpsLive.stop(); });
+    saveBtn.addEventListener('click', () => saveCurrentSession(pendingSummary));
+
+    resetDemoView();
+  });</script>
+</body>
+</html>
