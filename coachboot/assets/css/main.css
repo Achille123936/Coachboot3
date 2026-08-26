@@ -70,9 +70,14 @@
 
 /* ---- Reset ------------------------------------------------------------- */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+img, canvas, video, svg { max-width: 100%; }
 body {
   margin: 0;
+  overflow-x: hidden; /* filet de sécurité : empêche un débordement horizontal
+    résiduel non identifié de créer un scroll de page entière sur mobile —
+    les causes connues (grille 12 colonnes, DataTables, stat-ticker) sont
+    corrigées à la source ci-dessous, ceci est un dernier rempart. */
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -125,7 +130,7 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 
 /* ---- Stat ticker strip (signature) -------------------------------------- */
 .stat-ticker {
-  display: flex; gap: 0; overflow: hidden; border-radius: var(--radius);
+  display: flex; gap: 0; overflow-x: auto; max-width: 100%; border-radius: var(--radius);
   background: var(--accent-ink); color: #fff;
 }
 .stat-ticker__item {
@@ -277,7 +282,12 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .card__head h3 { font-size: 14.5px; margin: 0; display:flex; align-items:center; gap:8px;}
 .card__head h3::before { content:""; width: 4px; height: 16px; background: var(--accent); border-radius: 2px; display:inline-block;}
 .card__head .muted { font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono); }
-.card__body { padding: 18px; }
+/* overflow-x:auto : les tableaux DataTables (ex. #playersTable) calculent leur
+   propre largeur en pixels au rendu et l'imposent sur l'élément <table>,
+   ignorant `width:100%` en CSS — sans ça, un tableau large fait déborder
+   toute la page horizontalement sur mobile au lieu de simplement défiler
+   dans sa propre carte. */
+.card__body { padding: 18px; overflow-x: auto; }
 .card__foot { padding: 12px 18px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
 
 /* Grid helpers */
@@ -287,7 +297,14 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-12 { grid-template-columns: repeat(12, 1fr); }
 @media (max-width: 1180px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(2,1fr);} }
-@media (max-width: 720px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); } }
+/* .grid-12 (dashboards, GPS, Match Live, Télestration...) utilise presque
+   partout des colonnes en style inline (ex. style="grid-column:span 8;") —
+   jamais couvertes par une classe qu'un media query pourrait cibler. Repasser
+   la grille elle-même à 1 seule colonne fait que n'importe quel span inline
+   s'y limite automatiquement (span 8 dans une grille à 1 colonne = pleine
+   largeur) : pas besoin de toucher aux 17 pages qui l'utilisent. */
+@media (max-width: 900px) { .grid-12 { grid-template-columns: minmax(0, 1fr); } }
 
 /* KPI card */
 .kpi { display: flex; flex-direction: column; gap: 6px; }
@@ -370,15 +387,22 @@ table.simple-table tbody tr:hover { background: var(--bg-sunken); }
 .auth-wrap .side { background: var(--accent-ink); color: #fff; padding: 50px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; }
 .auth-wrap .form-col { display:flex; align-items:center; justify-content:center; padding: 40px 24px; }
 .auth-card { width: 100%; max-width: 380px; }
-@media (max-width: 880px) { .auth-wrap { grid-template-columns: 1fr; } .auth-wrap .side { display:none; } }
+@media (max-width: 880px) { .auth-wrap { grid-template-columns: minmax(0, 1fr); } .auth-wrap .side { display:none; } }
 
 /* Landing */
 .navbar-public { position: sticky; top:0; z-index: 50; background: rgba(255,255,255,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
 [data-theme="dark"] .navbar-public { background: rgba(11,23,18,.85); }
-.navbar-public .wrap { max-width: 1240px; margin:0 auto; padding: 14px 24px; display:flex; align-items:center; gap: 28px; }
+.navbar-public .wrap { max-width: 1240px; margin:0 auto; padding: 14px 24px; display:flex; align-items:center; gap: 28px; flex-wrap: wrap; }
 .navbar-public nav { display:flex; gap: 22px; margin-left: 8px; }
 .navbar-public nav a { color: var(--text); font-size: 13.6px; font-weight: 600; }
 .navbar-public nav a:hover { color: var(--accent); }
+@media (max-width: 760px) {
+  /* Liens d'ancrage de section (Plateforme/Cellules/Rôles/Formation) —
+     pas de menu hamburger sur cette page publique : on les masque plutôt que
+     de les faire chevaucher Connexion/Créer un compte, qui restent prioritaires. */
+  .navbar-public nav { display: none; }
+  .navbar-public .wrap { padding: 12px 16px; gap: 10px; }
+}
 
 .section { padding: 78px 24px; }
 .section .wrap { max-width: 1240px; margin: 0 auto; }
@@ -392,7 +416,19 @@ table.simple-table tbody tr:hover { background: var(--bg-sunken); }
 .hero h1 em { font-style: normal; color: var(--accent); }
 .hero .lede { font-size: 16.5px; max-width: 480px; }
 .hero .cta-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
-@media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; } .hero h1 { font-size: 36px; } }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 36px; } }
+
+/* Section 2 colonnes réutilisable (ex. « Formation continue » sur index.html)
+   — remplace un style inline grid-template-columns:1fr 1fr qui ne pouvait pas
+   être ciblé par un media query (spécificité de l'attribut style). */
+.split-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+@media (max-width: 900px) { .split-2col { grid-template-columns: minmax(0, 1fr); } }
+
+/* Ligne de 5 KPI (ex. cell-gps.html) — remplace un style inline
+   grid-template-columns:repeat(5,1fr), même limite qu'au-dessus. */
+.kpi-row-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 720px) { .kpi-row-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .kpi-row-5 { grid-template-columns: minmax(0, 1fr); } }
 
 .pitch-panel {
   background: var(--accent-ink); border-radius: var(--radius-lg); padding: 22px; position: relative; color:#fff;
