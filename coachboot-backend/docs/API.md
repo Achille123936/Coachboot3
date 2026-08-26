@@ -483,17 +483,24 @@ tables existantes via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, migration idem
 ### ⚠️ Limites honnêtes — Assistant IA
 - **Un seul fournisseur actif à la fois**, pas de bascule automatique en cas de panne de l'un —
   changer `AI_PROVIDER` nécessite un redémarrage du serveur (variable lue au démarrage du process).
-- **Le chemin Gemini n'a pas été testé avec un vrai appel API** dans cet environnement : aucune
-  `GEMINI_API_KEY` réelle n'était disponible au moment de l'implémentation. Ce qui a été vérifié
-  réellement : le code se charge sans erreur (`node -c`, démarrage serveur réel), le SDK
-  `@google/generative-ai` s'importe correctement, le routage `AI_PROVIDER=gemini` échoue bien en
-  `503` avec le message attendu quand la clé est absente (testé par curl), et la suite de tests
-  complète (53/53) passe sans régression après le refactor. **La construction exacte de la requête
-  Gemini (mapping historique `role`/`parts`, `systemInstruction`) suit la documentation officielle
-  du SDK mais n'a pas été validée par un appel réel — à confirmer dès qu'une clé Gemini valide est
-  fournie.** Le chemin Anthropic, lui, reste inchangé et suit le comportement déjà vérifié
-  précédemment (échec propre en `503` sans clé — aucun appel réel n'a non plus été fait dans cet
-  environnement, faute de `ANTHROPIC_API_KEY` configurée).
+- **Mise à jour du 2026-08-26 : le chemin Gemini est maintenant vérifié avec un vrai appel API**,
+  une clé Gemini réelle ayant été fournie (`GEMINI_API_KEY`, obtenue sur
+  [aistudio.google.com/apikey](https://aistudio.google.com/apikey)). Testé réellement en local ET
+  sur le déploiement Render de production : `POST /assistant/chat` renvoie une vraie réponse
+  générée par Gemini, ancrée dans les données réelles du club (ex. effectif disponible, prochain
+  match), avec `provider:"gemini"` dans la réponse. `AI_PROVIDER=gemini` est la configuration
+  active par défaut de ce projet depuis cette mise à jour.
+- **Note modèle** : `gemini-2.5-flash` et `gemini-2.0-flash` sont dépréciés côté Google (confirmé
+  par l'API elle-même via une erreur 404 explicite au moment de la vérification) ; le modèle par
+  défaut de ce projet est désormais `gemini-3.6-flash` (configurable via `GEMINI_MODEL`). Les noms
+  de modèles Google évoluent vite — si l'assistant renvoie une 404 côté Gemini à l'avenir, vérifier
+  le nom de modèle courant plutôt que de supposer un bug applicatif.
+- **Format de clé** : les clés Gemini générées via aistudio.google.com peuvent avoir un préfixe
+  `AQ.` plutôt que l'ancien format `AIzaSy...` — les deux formats ont été vus fonctionner ; ne pas
+  rejeter une clé sur la seule base de son préfixe, vérifier par un appel réel.
+- Le chemin **Anthropic** reste inchangé et n'a toujours pas été testé avec un vrai appel (aucune
+  `ANTHROPIC_API_KEY` réelle fournie dans ce projet à ce jour) — son comportement vérifié se limite
+  à l'échec propre en `503` sans clé.
 
 ## Tableau de bord — `/dashboard/summary` (agrégats calculés en temps réel depuis PostgreSQL)
 

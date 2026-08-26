@@ -251,7 +251,7 @@ sauvegarde planifiée : non fournis par ce projet, dépendent de l'hébergeur ch
 | Blocker | Quoi fournir | Où le configurer | Comment vérifier ensuite |
 |---|---|---|---|
 | Service d'envoi d'e-mail | Clé API SMTP/SendGrid/Resend | Nouvelle variable d'env + intégration dans `forgot-password` | `POST /auth/forgot-password` ne devrait plus renvoyer `dev_reset_token` mais un e-mail réel reçu |
-| `ANTHROPIC_API_KEY` (ou `GEMINI_API_KEY` avec `AI_PROVIDER=gemini`) | Clé Anthropic **ou** clé Google Gemini valide | `.env` | `POST /assistant/chat` renvoie une vraie réponse au lieu de 503. Deux fournisseurs codés cette session (voir `docs/API.md`, section Assistant IA) — aucun des deux n'a de clé réelle dans cet environnement, donc **aucun appel réel n'a été fait vers un LLM externe** ; seul le routage/échec propre (503, message ciblant le bon fournisseur) a été vérifié par `curl`. |
+| `ANTHROPIC_API_KEY` (fournisseur alternatif, `AI_PROVIDER=anthropic`) | Clé Anthropic valide | `.env` / Render | `POST /assistant/chat` renvoie une vraie réponse au lieu de 503. **`GEMINI_API_KEY` fournie et vérifiée le 2026-08-26** (voir `docs/API.md`, section Assistant IA) — Anthropic reste le seul chemin encore non testé avec une vraie clé. |
 | Docker | Installation de Docker Desktop/Engine | Machine de déploiement | `docker compose up --build` + healthchecks verts |
 | HTTPS | Certificat / reverse proxy | Hébergeur choisi | Requête HTTPS réussie sur le domaine de prod |
 | Modèle de vision par ordinateur (Video Analysis) | Modèle entraîné + infra d'inférence + vidéos réelles | Nouveau service dédié | Détection réelle testée sur une vidéo réelle |
@@ -297,7 +297,7 @@ TÉLESTRATION VIDÉO (annotation manuelle)        : VERIFIED — sujet DISTINCT 
   par un point plus proche (`gps_live_tracking`, logique de plus-proche-des-deux-sources testée),
   cas honnêtes `no_time_anchor`/`no_nearby_gps_data`, IDOR (joueur limité à ses propres données).
 ML                        : VERIFIED (provenance systématique re-testée de bout en bout : train→predict réel avec dataset_type=synthetic, model_version/data_source/model_trained_at confirmés dans la réponse, modèle nettoyé après test)
-ASSISTANT IA              : PARTIAL — 2 fournisseurs codés (Anthropic par défaut, Gemini alternatif via AI_PROVIDER), routage et échec propre 503 vérifiés par curl pour les deux ; **aucun appel réel à un LLM externe** (ni Claude ni Gemini) n'a pu être testé, faute de clé API dans cet environnement
+ASSISTANT IA              : VERIFIED (Gemini) — mis à jour le 2026-08-26 : vraie clé GEMINI_API_KEY fournie, AI_PROVIDER=gemini actif par défaut, appel réel confirmé en local ET sur Render production (réponses ancrées dans les vraies données club, provider:"gemini" dans la réponse). Modèle gemini-2.5-flash déprécié par Google entre-temps (404 explicite) → gemini-3.6-flash désormais par défaut. Chemin Anthropic inchangé, toujours PARTIAL (503 propre vérifié, aucune clé réelle fournie pour ce fournisseur)
 REPORTS                   : VERIFIED (export binaire réel)
 AUTH                      : VERIFIED (register/login/change-password/forgot-password/reset-password)
 
@@ -323,7 +323,7 @@ CETTE SESSION (Neon + Télestration) — 1 bug trouvé et corrigé pendant le d�
     qu'il pouvait dessiner. Revérifié après correction : rôle `player` → toolbar et bouton
     « Nouveau clip » bien masqués, lecture seule confirmée.
 
-EXTERNAL BLOCKERS         : 5 (voir section 18)
+EXTERNAL BLOCKERS         : 4 (voir section 18) — assistant IA débloqué le 2026-08-26 (clé Gemini réelle fournie)
 
 FINAL STATUS: READY WITH LIMITATIONS
 ```
