@@ -13,7 +13,11 @@ Si une information précise n'est pas dans le contexte fourni, dis-le clairement
 // Choix explicite par variable d'environnement — jamais de repli silencieux d'un
 // fournisseur vers l'autre, pour ne jamais masquer une mauvaise config en prod.
 const AI_PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+// gemini-2.5-flash/gemini-2.0-flash sont dépréciés côté Google (confirmé par
+// l'API elle-même : 404 "no longer available... use models/gemini-3.6-flash")
+// au moment de l'écriture de ce code — GEMINI_MODEL permet de suivre les
+// prochains changements de Google sans toucher au code.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 /** Construit l'instantané du contexte club (identique pour les deux fournisseurs,
  *  pour que Claude et Gemini répondent à partir des mêmes données réelles). */
