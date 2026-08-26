@@ -27,6 +27,12 @@
     .ay-pipeline i.fa-arrow-right { font-size: 10px; }
     .ay-module-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; background: var(--bg-sunken); font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
     .ay-module-num.final { background: var(--violet-soft); color: var(--violet); }
+    .ay-gen-panel { display: none; gap: 12px; flex-wrap: wrap; padding: 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; }
+    .ay-gen-panel.open { display: flex; }
+    .ay-gen-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; flex: 1; min-width: 160px; }
+    .ay-gen-field input, .ay-gen-field select, .ay-gen-field textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit; }
+    .ay-preview-chapter { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    .ay-preview-chapter h5 { margin: 0 0 4px; font-size: 13.5px; }
   </style>
 </head>
 <body data-page="academy">
@@ -41,7 +47,51 @@
             <h1>🎓 CoachBoot IA — Football Intelligence Academy</h1>
             <p>6 modules + un projet final pour apprendre à collecter, analyser, entraîner et interpréter les données football avec CoachBoot.</p>
           </div>
-          <div class="page-head__actions"><span class="badge badge-grey" id="academySourceBadge"><i class="fa-solid fa-flask"></i> Démo</span></div>
+          <div class="page-head__actions">
+            <button class="btn btn-primary btn-sm" id="ayGenBtn" hidden><i class="fa-solid fa-wand-magic-sparkles"></i> Générer un cours avec Gemini</button>
+            <span class="badge badge-grey" id="academySourceBadge"><i class="fa-solid fa-flask"></i> Démo</span>
+          </div>
+        </div>
+
+        <div class="ay-gen-panel" id="ayGenPanel">
+          <div class="ay-gen-field" style="flex-basis:100%;">
+            <label>Titre du cours</label>
+            <input type="text" id="ayGenTitle" placeholder="Ex. Introduction à l'analyse GPS">
+          </div>
+          <div class="ay-gen-field" style="flex-basis:100%;">
+            <label>Sujet</label>
+            <textarea id="ayGenSubject" rows="2" placeholder="Ex. Utiliser les données GPS pour évaluer la charge physique des joueurs"></textarea>
+          </div>
+          <div class="ay-gen-field">
+            <label>Niveau</label>
+            <select id="ayGenLevel"><option>Débutant</option><option>Intermédiaire</option><option>Avancé</option></select>
+          </div>
+          <div class="ay-gen-field">
+            <label>Nombre de chapitres</label>
+            <input type="number" id="ayGenChapters" min="1" max="10" value="4">
+          </div>
+          <div class="ay-gen-field">
+            <label>Durée estimée</label>
+            <input type="text" id="ayGenDuration" placeholder="Ex. 2 semaines">
+          </div>
+          <div class="ay-gen-field">
+            <label>Questions par quiz</label>
+            <input type="number" id="ayGenQuestions" min="2" max="10" value="5">
+          </div>
+          <div class="ay-gen-field" style="flex-basis:100%;">
+            <button class="btn btn-primary btn-sm" id="ayGenSubmitBtn" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Générer</button>
+            <button class="btn btn-outline btn-sm" id="ayGenCancelBtn" type="button">Annuler</button>
+          </div>
+        </div>
+
+        <div class="card" id="ayPreviewCard" style="margin-bottom:20px;display:none;">
+          <div class="card__head"><h3>Aperçu du cours généré</h3><span class="muted" id="ayPreviewCounts"></span></div>
+          <div class="card__body" id="ayPreviewBody"></div>
+          <div class="card__foot" style="display:flex;gap:10px;">
+            <button class="btn btn-primary btn-sm" id="ayPreviewSaveBtn"><i class="fa-solid fa-check"></i> Enregistrer</button>
+            <button class="btn btn-outline btn-sm" id="ayPreviewRegenBtn"><i class="fa-solid fa-rotate"></i> Régénérer</button>
+            <button class="btn btn-outline btn-sm" id="ayPreviewCancelBtn">Annuler</button>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:20px;"><div class="card__body">
@@ -144,8 +194,96 @@
       }
     }
 
+    // ---- AI Course Generator (Gemini) — réservé technical_director/admin ----
+    const GEN_ROLES = ['technical_director', 'admin'];
+    let ayPendingPreview = null; // { preview, level, language } — pas encore enregistré
+
+    function ayGenParams() {
+      return {
+        title: document.getElementById('ayGenTitle').value.trim(),
+        subject: document.getElementById('ayGenSubject').value.trim(),
+        level: document.getElementById('ayGenLevel').value,
+        chapterCount: +document.getElementById('ayGenChapters').value,
+        durationLabel: document.getElementById('ayGenDuration').value.trim() || null,
+        questionsPerQuiz: +document.getElementById('ayGenQuestions').value,
+        language: 'fr',
+      };
+    }
+
+    function renderPreview(preview) {
+      const counts = `${preview.chapters.length} chapitre(s) · ${preview.chapters.reduce((n, c) => n + c.quiz.questions.length, 0)} question(s) de quiz · 1 TP final`;
+      document.getElementById('ayPreviewCounts').textContent = counts;
+      const chaptersHtml = preview.chapters.map((c, i) => `
+        <div class="ay-preview-chapter">
+          <h5>Chapitre ${i + 1} — ${escapeHtml(c.title)}</h5>
+          <p class="muted" style="font-size:12.5px;margin:4px 0;">${escapeHtml(c.lesson.title)}</p>
+          <span class="badge badge-blue" style="font-size:10.5px;">${c.quiz.questions.length} question(s)</span>
+        </div>`).join('');
+      document.getElementById('ayPreviewBody').innerHTML = `
+        <p><b>${escapeHtml(preview.course.title)}</b></p>
+        <p class="muted" style="font-size:12.5px;margin-bottom:14px;">${escapeHtml(preview.course.description)}</p>
+        ${chaptersHtml}
+        <div class="ay-preview-chapter" style="border-color:var(--violet);">
+          <h5><i class="fa-solid fa-flag-checkered"></i> TP final — ${escapeHtml(preview.final_exercise.title)}</h5>
+        </div>`;
+      document.getElementById('ayPreviewCard').style.display = '';
+      document.getElementById('ayGenPanel').classList.remove('open');
+    }
+
+    async function runGeneration() {
+      const params = ayGenParams();
+      if (!params.title || !params.subject) {
+        Swal.fire('Champs requis', 'Titre et sujet sont obligatoires.', 'warning');
+        return;
+      }
+      const btn = document.getElementById('ayGenSubmitBtn');
+      const regenBtn = document.getElementById('ayPreviewRegenBtn');
+      [btn, regenBtn].forEach((b) => { if (b) { b.disabled = true; b.dataset.origHtml = b.innerHTML; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération en cours (Gemini)…'; } });
+      try {
+        const { preview, level, language } = await CB_API.generateCourseWithAI(params);
+        ayPendingPreview = { generated: preview, level, language };
+        renderPreview(preview);
+      } catch (err) {
+        Swal.fire('Erreur de génération', err.message, 'error');
+      } finally {
+        [btn, regenBtn].forEach((b) => { if (b) { b.disabled = false; b.innerHTML = b.dataset.origHtml; } });
+      }
+    }
+
+    async function initAcademyGenerator() {
+      if (!CB_API.isAuthenticated()) return;
+      let user;
+      try { user = await CB_API.me(); } catch { return; }
+      if (!GEN_ROLES.includes(user.role)) return;
+
+      document.getElementById('ayGenBtn').hidden = false;
+      document.getElementById('ayGenBtn').addEventListener('click', () => document.getElementById('ayGenPanel').classList.add('open'));
+      document.getElementById('ayGenCancelBtn').addEventListener('click', () => document.getElementById('ayGenPanel').classList.remove('open'));
+      document.getElementById('ayGenSubmitBtn').addEventListener('click', runGeneration);
+      document.getElementById('ayPreviewRegenBtn').addEventListener('click', runGeneration);
+      document.getElementById('ayPreviewCancelBtn').addEventListener('click', () => {
+        ayPendingPreview = null;
+        document.getElementById('ayPreviewCard').style.display = 'none';
+      });
+      document.getElementById('ayPreviewSaveBtn').addEventListener('click', async () => {
+        if (!ayPendingPreview) return;
+        const saveBtn = document.getElementById('ayPreviewSaveBtn');
+        saveBtn.disabled = true;
+        try {
+          const course = await CB_API.saveGeneratedCourse(ayPendingPreview);
+          await Swal.fire({ icon: 'success', title: 'Cours enregistré', text: `« ${course.title} » est maintenant visible dans l'Academy.`, confirmButtonColor: '#2C8F5E' });
+          window.location.href = `course-viewer.html#course=${encodeURIComponent(course.id)}`;
+        } catch (err) {
+          Swal.fire('Erreur', err.message, 'error');
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       loadAcademyFromApi();
+      initAcademyGenerator();
       document.getElementById('academyGrid').addEventListener('click', (event) => {
         const link = event.target.closest('[data-action="academy-locked"]');
         if (!link) return;

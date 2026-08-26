@@ -81,6 +81,7 @@ app.use('/api/matches', require('./routes/matches.routes'));
 app.use('/api/trainings', require('./routes/trainings.routes'));
 app.use('/api/scouting', require('./routes/scouting.routes'));
 app.use('/api/courses', require('./routes/courses.routes'));
+app.use('/api/academy', require('./routes/academy.routes'));
 app.use('/api/quizzes', require('./routes/quizzes.routes'));
 app.use('/api/certificates', require('./routes/certificates.routes'));
 app.use('/api/reports', require('./routes/reports.routes'));

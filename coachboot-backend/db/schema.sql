@@ -129,11 +129,21 @@ CREATE TABLE IF NOT EXISTS courses (
   description    TEXT,             -- ajouté pour CoachBoot IA Academy — nullable, ne casse pas les cours existants
   objective      TEXT,             -- objectif pédagogique global du module
   module_number  INTEGER,          -- ordre d'affichage dans l'Academy (1-6, 7 = projet final)
+  -- AI Course Generator (Gemini) — traçabilité de provenance, jamais pour
+  -- masquer un cours généré comme s'il avait été écrit à la main.
+  ai_generated   BOOLEAN NOT NULL DEFAULT FALSE,
+  ai_provider    VARCHAR(20),
+  created_by     UUID REFERENCES users(id) ON DELETE SET NULL,
+  language       VARCHAR(10) NOT NULL DEFAULT 'fr',
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS objective TEXT;
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS module_number INTEGER;
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(20);
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS language VARCHAR(10) NOT NULL DEFAULT 'fr';
 
 CREATE TABLE IF NOT EXISTS course_progress (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

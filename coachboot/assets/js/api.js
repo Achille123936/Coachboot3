@@ -203,6 +203,25 @@ const CB_API = {
     return result.certificates;
   },
 
+  // ---- Academy : AI Course Generator (Gemini) ----
+  // generate() n'écrit rien en base — juste un aperçu. save() persiste
+  // réellement (transaction serveur) l'aperçu (éventuellement retouché).
+  async generateCourseWithAI(params) {
+    return this.request('/academy/generate', {
+      method: 'POST',
+      body: {
+        title: params.title, subject: params.subject, level: params.level,
+        chapterCount: params.chapterCount, durationLabel: params.durationLabel || null,
+        language: params.language || 'fr', targetAudience: params.targetAudience || null,
+        objectives: params.objectives || null, questionsPerQuiz: params.questionsPerQuiz || 5,
+      },
+    });
+  },
+  async saveGeneratedCourse({ generated, level, language }) {
+    const result = await this.request('/academy/courses', { method: 'POST', body: { generated, level, language } });
+    return result.course;
+  },
+
   // ---- Entraînements ----
   async getTrainings(teamId) {
     const result = await this.request('/trainings' + (teamId ? `?team_id=${encodeURIComponent(teamId)}` : ''));

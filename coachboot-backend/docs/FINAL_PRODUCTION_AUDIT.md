@@ -418,3 +418,53 @@ Livré et vérifié réellement :
 - Toutes les données de test nettoyées après chaque vérification (clips, sessions GPS,
   matches_live de test) — confirmé par requêtes directes en base, `video_clips`/
   `video_annotations` à 0 ligne en fin de session.
+
+### Session du 2026-08-26 — AI Course Generator (Gemini) pour CoachBoot IA Academy
+
+L'utilisateur a fourni un cahier des charges de 22 sections pour transformer l'Academy en
+plateforme complète de génération de cours par IA (nouvelles tables Course/Module/Lesson/Quiz/
+Enrollment/Certificate, AI Tutor par leçon, AI grading du projet final, QR code de certification,
+dashboard admin multi-écrans...). **Décision de périmètre explicite, validée en plan avant
+codage** : l'Academy existante réutilise déjà `courses`/`course_chapters`/`course_lessons`/
+`quizzes`/`quiz_questions`/`course_exercises`/`certificates` — dupliquer ce schéma sous d'autres
+noms aurait contredit une règle déjà affirmée dans le code lui-même (« ne pas créer un système de
+formation parallèle », `schema.sql:147-152`). Livré : un vrai générateur qui produit exactement la
+même forme de données, pas un second système.
+
+**Livré et vérifié réellement** :
+- 4 colonnes ajoutées à `courses` (`ai_generated`, `ai_provider`, `created_by`, `language`),
+  nullable/défaut, aucune ligne existante affectée.
+- `src/services/geminiCourseGenerator.js` — appel Gemini en sortie JSON structurée
+  (`responseSchema`), validation manuelle (types de question limités à `qcm`/`vrai_faux`,
+  `correct_answer` doit correspondre à une clé de `choices`, tableaux non vides), une tentative de
+  réparation si invalide, erreur claire sinon.
+- `POST /api/academy/generate` (aperçu, aucune écriture) + `POST /api/academy/courses`
+  (transaction réelle : `courses`+`course_chapters`+`course_lessons`+`quizzes`+`quiz_questions`+
+  `course_exercises` insérés atomiquement).
+- **Preuve d'intégration réelle** (pas une façade) : un cours généré par Gemini a été créé, puis
+  son quiz noté via `POST /quizzes/:id/submit` **existant et non modifié** (2 bonnes réponses sur 3
+  → `score_pct: 67` calculé serveur, vérifié exact), sa leçon et son TP marqués complétés via les
+  endpoints existants (`progress_pct` recalculé par `recomputeCourseProgress`, déjà en place,
+  atteint 100%), et un certificat délivré via `POST /certificates/course/:id` existant — **aucun
+  de ces endpoints n'a été touché**, la preuve que l'IA alimente le système existant plutôt que
+  de le contourner.
+- 11 tests automatisés (`test/academy-generate.test.js`), incluant un **vrai appel Gemini non
+  mocké** (chapterCount=1 pour limiter coût/latence, ~72s pour ce test) — 84/84 tests au total.
+- IDOR/permissions : rôle `player` → 403 sur génération ; `chapterCount` hors bornes → 400 ;
+  `level` invalide → 400 ; structure altérée côté client → 400 (revalidée côté serveur, jamais de
+  confiance aveugle dans un JSON reçu du frontend même s'il vient de `/generate`).
+- **Bug réel trouvé et corrigé pendant la vérification Playwright** : le panneau admin
+  (`academy.html`) stockait l'aperçu généré sous la clé `preview` mais `CB_API.saveGeneratedCourse`
+  attendait une clé `generated` — la sauvegarde échouait silencieusement en 400
+  (« La réponse n'est pas un objet JSON »). Trouvé en testant le vrai bouton dans un vrai
+  navigateur (pas en lisant le code), confirmé par capture de la réponse réseau exacte, corrigé,
+  reverifié avec un parcours complet réussi : Admin → Générer (bouton réel, formulaire réel) →
+  Aperçu → Enregistrer → redirection vers `course-viewer.html` → cours affiché.
+- Toutes les données de test nettoyées après chaque vérification (cours généré, certificat,
+  cascade FK confirmée à 0 ligne restante).
+
+**Hors périmètre, documenté honnêtement** (voir `docs/API.md`, section AI Course Generator) :
+AI Tutor par leçon, AI grading du projet final (en conflit direct avec une décision déjà prise et
+documentée — TP toujours auto-évalués), QR code de certification, dashboard admin multi-écrans,
+statut brouillon/publié, édition fine d'une leçon/question générée, vérification automatique
+qu'un exercice pratique a été réellement effectué, rôle « Academy Manager » dédié.

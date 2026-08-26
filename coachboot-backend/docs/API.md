@@ -445,11 +445,34 @@ Quiz : GET /quizzes/:id/questions (sans correct_answer/explanation)
 `quizzes.chapter_id`, `quiz_attempts.answers`, `certificates.course_id` (colonnes ajoutées aux
 tables existantes via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, migration idempotente rejouable).
 
+### AI Course Generator — `/academy/generate`, `/academy/courses` (Gemini)
+
+Un `technical_director` (ou `admin`) peut demander à Gemini de générer un cours complet
+(chapitres → leçon → quiz noté → TP final) plutôt que de l'écrire à la main. **Aucun second
+système de formation** : un cours généré par IA s'insère dans exactement les mêmes tables que
+ci-dessus (`courses`/`course_chapters`/`course_lessons`/`quizzes`/`quiz_questions`/
+`course_exercises`) et suit ensuite le même pipeline de progression/notation/certification —
+sans aucune modification de ce pipeline.
+
+| Méthode | Route | Rôle requis | Description |
+|---|---|---|---|
+| POST | `/academy/generate` | `technical_director`/`admin` | `{ title, subject, level, chapterCount, durationLabel?, language?, targetAudience?, objectives?, questionsPerQuiz? }` → appelle Gemini, renvoie un **aperçu** (`{ preview, level, language }`). **N'écrit rien en base.** |
+| POST | `/academy/courses` | `technical_director`/`admin` | `{ generated: <aperçu ci-dessus>, level, language }` → revalide la structure côté serveur (ne fait jamais confiance à un JSON client sans revérification) puis l'enregistre en une seule transaction (`BEGIN`/`COMMIT`/`ROLLBACK`). `module_number` = suivant disponible. |
+
+**Génération structurée + validation + réparation** (`src/services/geminiCourseGenerator.js`) :
+Gemini est appelé avec `generationConfig.responseSchema` (sortie JSON stricte, pas un chat texte
+libre) puis la structure est revalidée manuellement (types de question limités à `qcm`/`vrai_faux`,
+`correct_answer` doit correspondre à une clé de `choices`, tableaux non vides). Si invalide, **une
+seule** tentative de réparation (les erreurs exactes sont renvoyées à Gemini avec une demande de
+correction) ; si toujours invalide, erreur claire — **jamais d'insertion partielle**.
+
 ### ⚠️ Limites honnêtes — CoachBoot IA Academy
 - **TP notés par auto-évaluation, pas par une IA.** `POST /courses/exercises/:id/complete`
   enregistre les notes libres de l'apprenant sans les corriger automatiquement — corriger une
   analyse de données ouverte nécessiterait un vrai jugement humain ; simuler une correction IA
-  aurait été présenté comme plus capable que ce que le système fait réellement.
+  aurait été présenté comme plus capable que ce que le système fait réellement. **Ceci s'applique
+  aussi aux TP générés par IA** : l'AI Course Generator ne grade jamais le projet final, par
+  cohérence avec cette décision déjà prise avant son ajout.
 - **Certaines leçons décrivent des fonctionnalités pas encore implémentées** (ex. Module 3 —
   « joueurs similaires » par KNN/clustering ; Module 6 — détection automatique de transitions et de
   formations). Ces leçons sont explicitement marquées « Fonctionnalité prévue / à venir » dans leur
@@ -461,6 +484,26 @@ tables existantes via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, migration idem
   marqués comme lus/réalisés, pas la compréhension réelle du contenu — le quiz noté est le seul
   signal de compréhension effective, et il ne bloque pas la progression (volontairement, pour ne
   pas pénaliser un apprenant qui revoit un chapitre).
+- **AI Course Generator — périmètre volontairement limité** (voir le cahier des charges complet
+  fourni par l'utilisateur pour la liste exhaustive de ce qui a été écarté, et pourquoi) :
+  - Pas de nouvelles tables `Course`/`Module`/`Lesson`/`Quiz`/`Enrollment`/`Certificate` — réutilise
+    entièrement le schéma Academy existant (une ligne `courses` reste un « Module »).
+  - Pas de rôle « Academy Manager » — réutilise `technical_director`/`admin`.
+  - Pas d'AI Tutor par leçon, pas d'AI grading du TP final (voir point ci-dessus), pas de QR code
+    de vérification sur les certificats, pas de dashboard admin multi-écrans (Courses/Modules/
+    Lessons/Quizzes/Students/Progress/Certificates/AI History) — le parcours livré est
+    **Générer → Prévisualiser → Enregistrer**, qui couvre le chemin de bout en bout critique.
+  - Pas de statut brouillon/publié séparé : enregistrer = immédiatement visible dans `GET /courses`.
+  - Types de question générés limités à `qcm`/`vrai_faux` (objectivement notables) — pas de
+    questions ouvertes générées par IA.
+  - « Régénérer » relance simplement `/academy/generate` avec les mêmes paramètres avant
+    d'enregistrer ; l'édition fine de chaque question/leçon générée n'est pas construite (seuls les
+    paramètres de génération sont modifiables avant de régénérer).
+  - Les leçons/TP générés ne créent pas de vérification automatique qu'un exercice pratique
+    (« analyse ce match avec Match Live ») a réellement été effectué — reste une auto-évaluation.
+  - Un vrai appel Gemini prend généralement 20 à 90 secondes pour un cours complet (sortie JSON
+    structurée volumineuse) — le formulaire de génération affiche un indicateur de chargement
+    plutôt que de faire croire à une réponse instantanée.
 
 ## Assistant IA — `POST /assistant/chat` (chat contextualisé, deux fournisseurs possibles)
 
