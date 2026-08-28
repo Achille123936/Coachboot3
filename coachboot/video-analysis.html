@@ -23,6 +23,8 @@
   <style>
     .va-video-wrap { position: relative; background: #06170F; border-radius: var(--radius); overflow: hidden; }
     .va-video-wrap video { display: block; width: 100%; max-height: 520px; background: #000; }
+    .va-video-wrap #vaYoutubeWrap { width: 100%; height: 520px; background: #000; }
+    .va-video-wrap #vaYoutubeWrap iframe { display: block; width: 100%; height: 100%; border: 0; }
     .va-video-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     .va-video-wrap canvas.va-cursor-draw { cursor: crosshair; }
     .va-video-wrap canvas.va-cursor-select { cursor: pointer; }
@@ -81,8 +83,8 @@
               <input type="text" id="vaNewTitle" placeholder="Ex. Pressing haut — 1ère mi-temps">
             </div>
             <div class="va-field">
-              <label>URL vidéo directement lisible (MP4/WebM/HLS)</label>
-              <input type="url" id="vaNewUrl" placeholder="https://…">
+              <label>URL vidéo directement lisible (MP4/WebM/HLS) — ou lien YouTube</label>
+              <input type="url" id="vaNewUrl" placeholder="https://… ou https://www.youtube.com/watch?v=…">
             </div>
             <div class="va-field">
               <label>ou fichier local (jamais envoyé au serveur)</label>
@@ -113,6 +115,7 @@
                 <div class="card__body" style="padding:0;">
                   <div class="va-video-wrap" id="vaVideoWrap">
                     <video id="vaVideo" controls playsinline></video>
+                    <div id="vaYoutubeWrap" style="display:none;"><div id="vaYoutubePlayer"></div></div>
                     <canvas id="vaCanvas"></canvas>
                   </div>
                   <div class="va-toolbar" id="vaToolbar" hidden>
@@ -173,6 +176,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.1/aos.js"></script>
   <!-- SweetAlert2 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.12.0/sweetalert2.all.min.js"></script>
+  <!-- YouTube IFrame Player API — permet de jouer un clip dont l'URL est un lien
+       YouTube (pas un fichier vidéo direct) tout en gardant la télestration
+       synchronisée sur son horloge (voir player.currentTime plus bas). -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <!-- CoachBoot shared JS -->
   <script src="assets/js/api.js"></script>
@@ -210,6 +217,7 @@
       clipTitle: document.getElementById('vaClipTitle'),
       clipFoot: document.getElementById('vaClipFoot'),
       video: document.getElementById('vaVideo'),
+      ytWrap: document.getElementById('vaYoutubeWrap'),
       canvas: document.getElementById('vaCanvas'),
       toolbar: document.getElementById('vaToolbar'),
       color: document.getElementById('vaColor'),
@@ -228,6 +236,115 @@
       annoCount: document.getElementById('vaAnnoCount'),
     };
     const ctx = els.canvas.getContext('2d');
+
+    // ==========================================================================
+    // ABSTRACTION LECTEUR — la télestration lit/écrit `player.currentTime`,
+    // `player.pause()`, `player.duration`, `player.width/height` sans jamais
+    // savoir si la source est le <video> HTML5 natif ou un lecteur YouTube
+    // (IFrame Player API, requis quand video_url est un lien YouTube — cette
+    // API ne peut pas être lue par une balise <video> classique). Le dessin lui-
+    // même (canvas, souris) est totalement indépendant du type de lecteur : le
+    // canvas est juste superposé par-dessus, quel que soit ce qu'il y a dessous.
+    // ==========================================================================
+    let ytRedrawInterval = null;
+    const player = {
+      type: 'html5', // 'html5' | 'youtube'
+      yt: null,
+      ytReady: false, // `new YT.Player(...)` renvoie un objet immédiatement, mais ses méthodes
+                       // (getCurrentTime, seekTo...) lèvent "is not a function" tant que l'iframe
+                       // interne n'a pas fini de s'initialiser — n'y toucher qu'après onReady.
+      get currentTime() {
+        if (this.type === 'youtube') return (this.ytReady && this.yt) ? (this.yt.getCurrentTime() || 0) : 0;
+        return els.video.currentTime || 0;
+      },
+      set currentTime(t) {
+        if (this.type === 'youtube') { if (this.ytReady && this.yt) this.yt.seekTo(t, true); }
+        else els.video.currentTime = t;
+        redraw();
+      },
+      get duration() {
+        if (this.type === 'youtube') return (this.ytReady && this.yt) ? (this.yt.getDuration() || 0) : 0;
+        return els.video.duration || 0;
+      },
+      pause() {
+        if (this.type === 'youtube') { if (this.ytReady && this.yt) this.yt.pauseVideo(); }
+        else els.video.pause();
+      },
+      get width() {
+        return (this.type === 'youtube' ? els.ytWrap.clientWidth : els.video.clientWidth) || els.canvas.clientWidth || 640;
+      },
+      get height() {
+        return (this.type === 'youtube' ? els.ytWrap.clientHeight : els.video.clientHeight) || els.canvas.clientHeight || 360;
+      },
+    };
+
+    /** Reconnaît un lien YouTube (watch?v=, youtu.be/, embed/, shorts/) et en extrait l'ID vidéo. Renvoie null sinon. */
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([\w-]{11})/,
+      ];
+      for (const re of patterns) { const m = url.match(re); if (m) return m[1]; }
+      return null;
+    }
+
+    // Chargement asynchrone de l'API YouTube (le tag <script src="…/iframe_api">
+    // l'appelle automatiquement dès qu'elle est prête — jamais avant).
+    let ytApiReady = false;
+    let ytApiWaiters = [];
+    window.onYouTubeIframeAPIReady = function () {
+      ytApiReady = true;
+      ytApiWaiters.forEach((cb) => cb());
+      ytApiWaiters = [];
+    };
+    function whenYoutubeApiReady(cb) {
+      if (ytApiReady && window.YT && window.YT.Player) cb();
+      else ytApiWaiters.push(cb);
+    }
+
+    function stopYoutubePlayer() {
+      player.ytReady = false;
+      if (ytRedrawInterval) { clearInterval(ytRedrawInterval); ytRedrawInterval = null; }
+      if (player.yt) { try { player.yt.destroy(); } catch (e) { /* déjà détruit */ } player.yt = null; }
+      els.ytWrap.innerHTML = '<div id="vaYoutubePlayer"></div>';
+    }
+
+    function startYoutubePlayer(videoId) {
+      stopYoutubePlayer(); // détruit une éventuelle instance précédente (changement de clip YouTube -> YouTube)
+      player.type = 'youtube';
+      els.video.style.display = 'none';
+      els.video.removeAttribute('src');
+      els.ytWrap.style.display = 'block';
+      whenYoutubeApiReady(() => {
+        player.yt = new YT.Player('vaYoutubePlayer', {
+          videoId,
+          playerVars: { playsinline: 1, rel: 0 },
+          events: {
+            onReady: () => { player.ytReady = true; resizeCanvas(); redraw(); },
+            onStateChange: (evt) => {
+              // Pas d'événement "timeupdate" natif côté YouTube — on redessine en
+              // boucle pendant la lecture (annotations horodatées, flèches animées),
+              // et une seule fois de plus à l'arrêt/pause pour rester à jour.
+              if (evt.data === YT.PlayerState.PLAYING) {
+                if (ytRedrawInterval) clearInterval(ytRedrawInterval);
+                ytRedrawInterval = setInterval(redraw, 150);
+              } else {
+                if (ytRedrawInterval) { clearInterval(ytRedrawInterval); ytRedrawInterval = null; }
+                redraw();
+              }
+            },
+          },
+        });
+      });
+    }
+
+    function startHtml5Player(url) {
+      player.type = 'html5';
+      stopYoutubePlayer();
+      els.ytWrap.style.display = 'none';
+      els.video.style.display = 'block';
+      if (url) els.video.src = url; else els.video.removeAttribute('src');
+    }
 
     let clips = [];
     let players = []; // liste réelle des joueurs du club (CB_API.getPlayers()), pour associer une annotation/un clip à un joueur
@@ -321,8 +438,8 @@
     function lerpPoint(a, b, t) { return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) }; }
 
     function resizeCanvas() {
-      els.canvas.width = els.video.clientWidth || els.canvas.clientWidth || 640;
-      els.canvas.height = els.video.clientHeight || els.canvas.clientHeight || 360;
+      els.canvas.width = player.width;
+      els.canvas.height = player.height;
       redraw();
     }
     window.addEventListener('resize', resizeCanvas);
@@ -419,7 +536,7 @@
 
     function redraw() {
       ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
-      const t = els.video.currentTime || 0;
+      const t = player.currentTime;
       annotations.filter((a) => isVisible(a, t)).forEach((a) => {
         drawShape(a.type, geometryAt(a, t), { selected: a.id === selectedId });
       });
@@ -502,7 +619,7 @@
         if (d.w < 0) { d.x += d.w; d.w = -d.w; }
         if (d.h < 0) { d.y += d.h; d.h = -d.h; }
       }
-      const startSec = els.video.currentTime || 0;
+      const startSec = player.currentTime;
       const finalized = draft; draft = null;
 
       const isAnimatable = (finalized.type === 'arrow') && els.animate.checked;
@@ -522,7 +639,7 @@
         if (!label) return;
         const color = els.color.value, thickness = +els.thickness.value;
         const data = currentTool === 'text' ? { x: p.x, y: p.y, text: label, color, thickness } : { x: p.x, y: p.y, label, color };
-        await doAdd({ type: currentTool, data, timestamp_start_sec: els.video.currentTime || 0, timestamp_end_sec: null });
+        await doAdd({ type: currentTool, data, timestamp_start_sec: player.currentTime, timestamp_end_sec: null });
       }
     });
 
@@ -548,7 +665,7 @@
       const threshold = 0.02;
       let best = null, bestDist = Infinity;
       annotations.forEach((a) => {
-        const geo = geometryAt(a, els.video.currentTime || 0);
+        const geo = geometryAt(a, player.currentTime);
         let d = Infinity;
         if (a.type === 'circle') d = Math.abs(Math.hypot(p.x - geo.cx, p.y - geo.cy) - geo.r);
         else if (a.type === 'rectangle') d = (p.x >= geo.x && p.x <= geo.x + geo.w && p.y >= geo.y && p.y <= geo.y + geo.h) ? 0 : Infinity;
@@ -603,8 +720,8 @@
         Swal.fire('Erreur', err.message, 'error');
       }
     });
-    els.frameBackBtn.addEventListener('click', () => { els.video.pause(); els.video.currentTime = Math.max(0, els.video.currentTime - 1 / 30); });
-    els.frameFwdBtn.addEventListener('click', () => { els.video.pause(); els.video.currentTime = Math.min(els.video.duration || 1e9, els.video.currentTime + 1 / 30); });
+    els.frameBackBtn.addEventListener('click', () => { player.pause(); player.currentTime = Math.max(0, player.currentTime - 1 / 30); });
+    els.frameFwdBtn.addEventListener('click', () => { player.pause(); player.currentTime = Math.min(player.duration || 1e9, player.currentTime + 1 / 30); });
     els.exportBtn.addEventListener('click', () => {
       const blob = new Blob([JSON.stringify({ clip: currentClip, annotations }, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -667,7 +784,7 @@
       if (!row) return;
       selectedId = row.dataset.id;
       const a = annotations.find((x) => x.id === selectedId);
-      if (a) els.video.currentTime = Number(a.timestamp_start_sec);
+      if (a) player.currentTime = Number(a.timestamp_start_sec);
       renderAnnoList(); redraw();
     });
 
@@ -678,7 +795,7 @@
         ? clips.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')
         : '<option value="">Aucun clip — créez-en un</option>';
       if (clips.length) await selectClip(clips[0].id);
-      else { currentClip = null; els.clipTitle.textContent = 'Aucun clip — créez-en un pour commencer'; annotations = []; renderAnnoList(); }
+      else { currentClip = null; els.clipTitle.textContent = 'Aucun clip — créez-en un pour commencer'; annotations = []; startHtml5Player(null); renderAnnoList(); }
     }
     async function selectClip(clipId) {
       currentClip = clips.find((c) => c.id === clipId) || null;
@@ -687,9 +804,11 @@
       els.clipSelect.value = clipId;
       selectedId = null; undoStack.length = 0; redoStack.length = 0; updateHistoryButtons();
       if (currentClip.source_type === 'url' && currentClip.video_url) {
-        els.video.src = currentClip.video_url;
+        const ytId = extractYouTubeId(currentClip.video_url);
+        if (ytId) startYoutubePlayer(ytId);
+        else startHtml5Player(currentClip.video_url);
       } else {
-        els.video.removeAttribute('src');
+        startHtml5Player(null);
         setSaveStatus('Clip local : resélectionnez le fichier vidéo ci-dessous.');
       }
       annotations = await CB_API.getClipAnnotations(clipId);
@@ -709,7 +828,7 @@
         await CB_API.deleteVideoClip(currentClip.id);
         clips = clips.filter((c) => c.id !== currentClip.id);
         currentClip = null; annotations = []; selectedId = null;
-        els.video.removeAttribute('src'); els.deleteClipBtn.hidden = true;
+        startHtml5Player(null); els.deleteClipBtn.hidden = true;
         els.clipSelect.innerHTML = clips.length
           ? clips.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('')
           : '<option value="">Aucun clip — créez-en un</option>';

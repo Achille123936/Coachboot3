@@ -522,9 +522,10 @@ CREATE INDEX IF NOT EXISTS idx_ml_models_club ON ml_models(club_id);
 -- TÉLESTRATION VIDÉO — annotations tactiques manuelles (flèches, cercles,
 -- lignes, zones, texte, markers joueur) posées sur une vidéo par le staff
 -- (coachboot/video-analysis.html). La vidéo elle-même n'est JAMAIS stockée
--- ici : un clip référence une URL directement lisible par <video> (même
--- contrainte que le repli réseau de Match Live) ou vient d'un fichier local
--- côté navigateur (source_type='local', video_url NULL) — seule l'annotation
+-- ici : un clip référence soit un lien YouTube (lu via YouTube IFrame Player
+-- API côté client), soit une URL directement lisible par <video> (même
+-- contrainte que le repli réseau de Match Live), soit un fichier local côté
+-- navigateur (source_type='local', video_url NULL) — seule l'annotation
 -- (les tracés) est persistée et partagée. Pas de tracking automatique de
 -- joueur/ballon ici (ça resterait BLOCKED_EXTERNAL, voir docs/API.md).
 -- ---------------------------------------------------------------------------

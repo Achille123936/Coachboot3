@@ -547,3 +547,34 @@ directe avant implémentation :
    n'importe quel club peut y contribuer).
 
 109/109 tests verts après ces deux changements (backend redémarré avant le run).
+
+### Télestration — support des liens YouTube (YouTube IFrame Player API)
+
+Ancienne limite honnête : un clip ne pouvait référencer qu'une URL directement lisible par
+`<video>` (MP4/WebM/HLS) ou un fichier local — un lien YouTube échouait silencieusement (l'API
+YouTube ne fournit pas de fichier lisible nativement par `<video>`). Corrigé dans
+`coachboot/video-analysis.html` : détection automatique d'un lien YouTube
+(`extractYouTubeId()` — `watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`) → lecture via la
+**YouTube IFrame Player API**, derrière une abstraction unique `player` (`currentTime`,
+`pause()`, `duration`, `width`/`height`) qui rend le reste du moteur de télestration (dessin,
+horodatage, undo/redo, flèches animées, corrélation GPS) totalement indépendant du lecteur réel
+utilisé. Aucun changement backend nécessaire (`video_url` était déjà un champ texte libre).
+
+**Bug réel trouvé et corrigé pendant la vérification Playwright** : `new YT.Player(...)` renvoie
+un objet immédiatement, mais ses méthodes (`getCurrentTime`, `seekTo`...) lèvent
+`"is not a function"` tant que l'iframe interne n'a pas fini de s'initialiser — capturé en testant
+un vrai clip dans un vrai navigateur (pas en relisant le code), corrigé avec un drapeau
+`ytReady` mis à `true` uniquement dans `onReady`.
+
+**Vérifié réellement, deux fois** : (1) un clip référençant un vrai lien YouTube officiel U.S.
+Soccer (USWNT vs Pays-Bas, Coupe du Monde 2023) — le lecteur affiche une vraie restriction
+géographique YouTube (« uploader has not made this video available in your country »), qui est
+une limite de licence YouTube elle-même, pas un bug ; (2) un clip avec un lien YouTube
+génériquement embarquable (Blender Foundation, domaine public) — lecture réelle confirmée, une
+annotation flèche dessinée à la souris directement sur le lecteur YouTube et sauvegardée avec
+succès (`✓ Enregistré`), visible dans le panneau Annotations. Nettoyé après vérification.
+
+**Limite honnête restante** : le pas-à-pas image par image (`vaFrameBackBtn`/`vaFrameFwdBtn`)
+n'est qu'approximatif sur YouTube (`seekTo`, pas d'accès frame-exact comme `<video>`) ; aucun
+événement `timeupdate` natif côté YouTube, donc le canvas se redessine par intervalle (150ms)
+pendant la lecture plutôt qu'à chaque frame réelle.

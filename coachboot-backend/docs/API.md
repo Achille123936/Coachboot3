@@ -216,12 +216,24 @@ de session, les relevés GPS multi-joueurs et les événements tagués sur la ti
 
 Module d'annotation manuelle sur vidéo (flèches, cercles, lignes, zones, dessin libre, texte,
 markers joueur) pour l'analyse tactique — voir `coachboot/video-analysis.html`. **La vidéo
-elle-même n'est jamais reçue ni stockée côté serveur** : un clip référence soit une URL
-directement lisible par `<video>` (même contrainte que le repli réseau de Match Live —
-MP4/WebM/HLS supporté nativement par le navigateur), soit un fichier choisi localement par
-l'utilisateur (`source_type='local'`, `video_url` NULL, jamais envoyé au serveur — juste affecté
-à `video.src` via `URL.createObjectURL`). Ce qui est réellement persisté et partagé entre
-utilisateurs, c'est **l'annotation** (forme, couleur, position, fenêtre temporelle).
+elle-même n'est jamais reçue ni stockée côté serveur** : un clip référence soit une URL vidéo,
+soit un fichier choisi localement par l'utilisateur (`source_type='local'`, `video_url` NULL,
+jamais envoyé au serveur — juste affecté à `video.src` via `URL.createObjectURL`). Ce qui est
+réellement persisté et partagé entre utilisateurs, c'est **l'annotation** (forme, couleur,
+position, fenêtre temporelle) — jamais la vidéo.
+
+`video_url` accepte deux natures, détectées automatiquement côté client (`extractYouTubeId()`
+dans `video-analysis.html`) :
+- **Lien YouTube** (`youtube.com/watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`) → lu via la
+  **YouTube IFrame Player API** (`https://www.youtube.com/iframe_api`), pas une balise `<video>`
+  (YouTube ne fournit pas de fichier lisible nativement). Une abstraction `player` unique
+  (`currentTime`/`pause()`/`duration`/`width`/`height`) fait que toute la télestration — horodatage
+  des annotations, image précédente/suivante, flèches animées — reste identique quel que soit le
+  lecteur réel derrière. Limite honnête : le pas-à-pas image par image n'est qu'approximatif sur
+  YouTube (`seekTo`, pas d'accès frame-exact comme `<video>`), et il n'existe aucun événement natif
+  `timeupdate` — un redessin du canvas est donc relancé par intervalle (150ms) pendant la lecture.
+- **URL vidéo directement lisible** (MP4/WebM/HLS) → balise `<video>` classique, comme avant
+  (même contrainte que le repli réseau de Match Live).
 
 | Méthode | Route | Rôle requis | Description |
 |---|---|---|---|
