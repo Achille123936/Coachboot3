@@ -14,12 +14,14 @@ const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireClubScope } = require('../middleware/auth');
 const { buildUpdateSet } = require('../utils/buildUpdate');
 const { validateUuidParam } = require('../middleware/validateUuid');
+const { addClubFilter } = require('../utils/tenantScope');
 
 router.param('id', validateUuidParam);
 router.param('clipId', validateUuidParam);
+router.use(requireAuth, requireClubScope);
 
 // fitness_coach ajouté : propriétaire naturel des données GPS, doit pouvoir
 // créer/lier des annotations GPS sans dépendre d'un autre rôle pour le faire.
@@ -30,7 +32,8 @@ const GPS_CORRELATION_TOLERANCE_SEC = 120;
 
 // Copie locale volontaire de la même garde IDOR que gps.routes.js — surfaces
 // indépendantes, cohérent avec le choix déjà fait pour gpsSocket.js plutôt
-// que d'extraire une abstraction partagée prématurée.
+// que d'extraire une abstraction partagée prématurée. Composée AVEC (pas à la
+// place de) le filtre club déjà appliqué à la requête qui récupère la ressource.
 async function requireOwnPlayerIfPlayerRole(req, res, playerId) {
   if (req.user.role !== 'player') return true;
   const { rows } = await pool.query('SELECT 1 FROM players WHERE id = $1 AND user_id = $2', [playerId, req.user.id]);
@@ -41,11 +44,13 @@ async function requireOwnPlayerIfPlayerRole(req, res, playerId) {
   return true;
 }
 
-/** GET /api/video/clips?match_id= — liste des clips (lecture ouverte à tout utilisateur authentifié) */
-router.get('/clips', requireAuth, asyncHandler(async (req, res) => {
+/** GET /api/video/clips?match_id= — liste des clips (lecture ouverte à tout le club) */
+router.get('/clips', asyncHandler(async (req, res) => {
   const { match_id } = req.query;
-  const params = []; let where = '';
-  if (match_id) { params.push(match_id); where = 'WHERE match_id = $1'; }
+  const conditions = []; const params = [];
+  if (match_id) { params.push(match_id); conditions.push(`c.match_id = $${params.length}`); }
+  addClubFilter(conditions, params, req.clubId, 'c.club_id'); // qualifié : `users` a aussi club_id (retrofit multi-club), sinon ambigu
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const { rows } = await pool.query(
     `SELECT c.*, u.full_name AS created_by_name FROM video_clips c
      LEFT JOIN users u ON u.id = c.created_by
@@ -55,24 +60,26 @@ router.get('/clips', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 /** POST /api/video/clips — crée un clip (titre + URL ou fichier local) */
-router.post('/clips', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), [
+router.post('/clips', requireRole(...ANNOTATION_STAFF_ROLES), [
   body('title').trim().notEmpty().withMessage('title est requis.'),
   body('source_type').optional().isIn(SOURCE_TYPES).withMessage(`source_type doit être l'un de : ${SOURCE_TYPES.join(', ')}.`),
   body('recorded_at_start').optional({ nullable: true }).isISO8601().withMessage('recorded_at_start doit être une date ISO 8601 valide.'),
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  const clubId = req.clubId ?? req.body.club_id;
+  if (!clubId) return res.status(400).json({ error: 'club_id est requis.' });
   const { title, video_url, source_type, match_id, player_id, recorded_at_start } = req.body;
   const { rows } = await pool.query(
-    `INSERT INTO video_clips (title, video_url, source_type, match_id, player_id, recorded_at_start, created_by)
-     VALUES ($1,$2,COALESCE($3,'url'),$4,$5,$6,$7) RETURNING *`,
-    [title, video_url || null, source_type || null, match_id || null, player_id || null, recorded_at_start || null, req.user.id]
+    `INSERT INTO video_clips (club_id, title, video_url, source_type, match_id, player_id, recorded_at_start, created_by)
+     VALUES ($1,$2,$3,COALESCE($4,'url'),$5,$6,$7,$8) RETURNING *`,
+    [clubId, title, video_url || null, source_type || null, match_id || null, player_id || null, recorded_at_start || null, req.user.id]
   );
   res.status(201).json({ clip: rows[0] });
 }));
 
 /** PUT /api/video/clips/:id — modifie un clip (joueur par défaut, ancrage horaire réel...) */
-router.put('/clips/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), [
+router.put('/clips/:id', requireRole(...ANNOTATION_STAFF_ROLES), [
   body('recorded_at_start').optional({ nullable: true }).isISO8601().withMessage('recorded_at_start doit être une date ISO 8601 valide.'),
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -80,24 +87,33 @@ router.put('/clips/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), [
   const fields = ['title', 'video_url', 'match_id', 'player_id', 'recorded_at_start'];
   const { updates, params } = buildUpdateSet(fields, req.body);
   if (!updates.length) return res.status(400).json({ error: 'Aucun champ à mettre à jour.' });
+  const conditions = [];
   params.push(req.params.id);
+  conditions.push(`id = $${params.length}`);
+  addClubFilter(conditions, params, req.clubId);
   const { rows } = await pool.query(
-    `UPDATE video_clips SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params
+    `UPDATE video_clips SET ${updates.join(', ')} WHERE ${conditions.join(' AND ')} RETURNING *`, params
   );
   if (!rows.length) return res.status(404).json({ error: 'Clip introuvable.' });
   res.json({ clip: rows[0] });
 }));
 
 /** DELETE /api/video/clips/:id — supprime un clip (cascade sur ses annotations) */
-router.delete('/clips/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
-  const { rowCount } = await pool.query('DELETE FROM video_clips WHERE id = $1', [req.params.id]);
+router.delete('/clips/:id', requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
+  const conditions = []; const params = [];
+  params.push(req.params.id);
+  conditions.push(`id = $${params.length}`);
+  addClubFilter(conditions, params, req.clubId);
+  const { rowCount } = await pool.query(`DELETE FROM video_clips WHERE ${conditions.join(' AND ')}`, params);
   if (!rowCount) return res.status(404).json({ error: 'Clip introuvable.' });
   res.status(204).send();
 }));
 
 /** GET /api/video/clips/:clipId/annotations — annotations d'un clip, triées par timestamp */
-router.get('/clips/:clipId/annotations', requireAuth, asyncHandler(async (req, res) => {
-  const { rows: clipRows } = await pool.query('SELECT id FROM video_clips WHERE id = $1', [req.params.clipId]);
+router.get('/clips/:clipId/annotations', asyncHandler(async (req, res) => {
+  const clipConditions = ['id = $1']; const clipParams = [req.params.clipId];
+  addClubFilter(clipConditions, clipParams, req.clubId);
+  const { rows: clipRows } = await pool.query(`SELECT id FROM video_clips WHERE ${clipConditions.join(' AND ')}`, clipParams);
   if (!clipRows.length) return res.status(404).json({ error: 'Clip introuvable.' });
   const { rows } = await pool.query(
     `SELECT * FROM video_annotations WHERE clip_id = $1 ORDER BY timestamp_start_sec ASC, created_at ASC`,
@@ -107,7 +123,7 @@ router.get('/clips/:clipId/annotations', requireAuth, asyncHandler(async (req, r
 }));
 
 /** POST /api/video/clips/:clipId/annotations — crée une annotation sur un clip */
-router.post('/clips/:clipId/annotations', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), [
+router.post('/clips/:clipId/annotations', requireRole(...ANNOTATION_STAFF_ROLES), [
   body('type').isIn(ANNOTATION_TYPES).withMessage(`type doit être l'un de : ${ANNOTATION_TYPES.join(', ')}.`),
   body('data').isObject().withMessage('data (objet) est requis.'),
   body('timestamp_start_sec').isFloat({ min: 0 }).withMessage('timestamp_start_sec doit être un nombre positif.'),
@@ -116,14 +132,17 @@ router.post('/clips/:clipId/annotations', requireAuth, requireRole(...ANNOTATION
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
 
-  const { rows: clipRows } = await pool.query('SELECT id FROM video_clips WHERE id = $1', [req.params.clipId]);
+  const clipConditions = ['id = $1']; const clipParams = [req.params.clipId];
+  addClubFilter(clipConditions, clipParams, req.clubId);
+  const { rows: clipRows } = await pool.query(`SELECT id, club_id FROM video_clips WHERE ${clipConditions.join(' AND ')}`, clipParams);
   if (!clipRows.length) return res.status(404).json({ error: 'Clip introuvable.' });
+  const clubId = req.clubId ?? clipRows[0].club_id;
 
   const { type, data, timestamp_start_sec, timestamp_end_sec, player_id } = req.body;
   const { rows } = await pool.query(
-    `INSERT INTO video_annotations (clip_id, type, data, timestamp_start_sec, timestamp_end_sec, player_id, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [req.params.clipId, type, JSON.stringify(data), timestamp_start_sec, timestamp_end_sec ?? null, player_id || null, req.user.id]
+    `INSERT INTO video_annotations (club_id, clip_id, type, data, timestamp_start_sec, timestamp_end_sec, player_id, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [clubId, req.params.clipId, type, JSON.stringify(data), timestamp_start_sec, timestamp_end_sec ?? null, player_id || null, req.user.id]
   );
   res.status(201).json({ annotation: rows[0] });
 }));
@@ -138,12 +157,14 @@ router.post('/clips/:clipId/annotations', requireAuth, requireRole(...ANNOTATION
  * post-match) et gps_live_tracking (Match Live) — retient la plus proche
  * dans le temps, dans une tolérance de ${GPS_CORRELATION_TOLERANCE_SEC}s.
  */
-router.get('/annotations/:id/gps', requireAuth, asyncHandler(async (req, res) => {
+router.get('/annotations/:id/gps', asyncHandler(async (req, res) => {
+  const conditions = ['a.id = $1']; const params = [req.params.id];
+  addClubFilter(conditions, params, req.clubId, 'a.club_id');
   const { rows: annoRows } = await pool.query(
     `SELECT a.id, a.player_id, a.timestamp_start_sec, c.recorded_at_start, c.match_id
      FROM video_annotations a JOIN video_clips c ON c.id = a.clip_id
-     WHERE a.id = $1`,
-    [req.params.id]
+     WHERE ${conditions.join(' AND ')}`,
+    params
   );
   if (!annoRows.length) return res.status(404).json({ error: 'Annotation introuvable.' });
   const anno = annoRows[0];
@@ -197,7 +218,7 @@ router.get('/annotations/:id/gps', requireAuth, asyncHandler(async (req, res) =>
 }));
 
 /** PUT /api/video/annotations/:id — modifie une annotation (position, style, fenêtre temporelle) */
-router.put('/annotations/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
+router.put('/annotations/:id', requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
   const fields = ['type', 'timestamp_start_sec', 'timestamp_end_sec', 'player_id'];
   const { updates, params } = buildUpdateSet(fields, req.body);
   if (req.body.data !== undefined) {
@@ -205,17 +226,24 @@ router.put('/annotations/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLE
     updates.push(`data = $${params.length}`);
   }
   if (!updates.length) return res.status(400).json({ error: 'Aucun champ à mettre à jour.' });
+  const conditions = [];
   params.push(req.params.id);
+  conditions.push(`id = $${params.length}`);
+  addClubFilter(conditions, params, req.clubId);
   const { rows } = await pool.query(
-    `UPDATE video_annotations SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params
+    `UPDATE video_annotations SET ${updates.join(', ')} WHERE ${conditions.join(' AND ')} RETURNING *`, params
   );
   if (!rows.length) return res.status(404).json({ error: 'Annotation introuvable.' });
   res.json({ annotation: rows[0] });
 }));
 
 /** DELETE /api/video/annotations/:id — supprime une annotation */
-router.delete('/annotations/:id', requireAuth, requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
-  const { rowCount } = await pool.query('DELETE FROM video_annotations WHERE id = $1', [req.params.id]);
+router.delete('/annotations/:id', requireRole(...ANNOTATION_STAFF_ROLES), asyncHandler(async (req, res) => {
+  const conditions = []; const params = [];
+  params.push(req.params.id);
+  conditions.push(`id = $${params.length}`);
+  addClubFilter(conditions, params, req.clubId);
+  const { rowCount } = await pool.query(`DELETE FROM video_annotations WHERE ${conditions.join(' AND ')}`, params);
   if (!rowCount) return res.status(404).json({ error: 'Annotation introuvable.' });
   res.status(204).send();
 }));

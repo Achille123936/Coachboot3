@@ -31,6 +31,54 @@ Rôles disponibles (enum PostgreSQL `user_role`) : `admin`, `president`, `techni
 `head_coach`, `fitness_coach`, `goalkeeper_coach`, `video_analyst`, `data_analyst`, `player`,
 `parent`, `federation`.
 
+## Multi-tenant (clubs) — isolation complète entre clubs
+
+CoachBoot est multi-club (SaaS) : chaque club a des données **entièrement isolées** de celles des
+autres clubs. Une nouvelle table `clubs` (`id`, `name`, `slug`, `invite_code`, `is_active`) sert de
+tenant ; 18 des 29 tables portent une colonne `club_id` directe (dénormalisée volontairement, pas
+seulement dérivable par jointure — voir justification dans le plan de la retrofit). Le contenu
+Academy (`courses`/`chapters`/`lessons`/`quizzes`/`exercises`) reste **partagé, plateforme-entière**
+(décision produit explicite) : seules les données de progression/tentatives/certificats restent
+scopées par utilisateur, comme avant.
+
+- **Inscription (`POST /auth/register`)** : exactement UN des deux champs suivants est requis —
+  - `invite_code` : rejoint un club **existant** (`clubs.invite_code`), 404 si invalide/inactif.
+  - `new_club_name` : **crée un nouveau club** — chaque équipe crée son propre club au lieu de
+    rejoindre un club préexistant (décision produit explicite). Le club (slug + `invite_code`
+    générés automatiquement) et son premier compte sont créés en une seule transaction ; la réponse
+    renvoie `{ user, token, club: { id, name, slug, invite_code } }` — le premier utilisateur doit
+    noter/partager cet `invite_code` pour que ses coéquipiers puissent le rejoindre ensuite via
+    `invite_code`. Rôle par défaut du créateur : `technical_director` (personnalisable, jamais
+    `admin`). Fournir les deux champs, ou aucun des deux, renvoie 400.
+
+  `role: 'admin'` ne peut plus être auto-sélectionné à l'inscription, dans les deux cas (corrige au
+  passage une élévation de privilège pré-existante).
+- **JWT** : le jeton porte désormais `club_id` (`null` uniquement pour `role: 'admin'`, le
+  superadmin plateforme) et une version de schéma `v: 2`. Tout jeton signé avant cette retrofit
+  (sans `v: 2`) est rejeté par `requireAuth` avec 401 — **il faut se reconnecter** après la mise à
+  jour (comptes de démonstration : mot de passe inchangé, `CoachBoot2026!`).
+- **`admin`** est le seul rôle sans club : il voit/gère toutes les clubs sans filtre (bypass déjà
+  existant dans `requireRole`, désormais formalisé comme superadmin plateforme).
+- **Portée des requêtes** : `requireClubScope` (après `requireAuth`) injecte `req.clubId` sur les 14
+  routeurs propres à un club ; chaque liste applique `club_id = req.clubId`, chaque mutation par
+  `:id` échoue par **404** (jamais 403) sur une ressource d'un autre club — un id deviné/copié
+  n'apprend jamais "cette ressource existe mais n'est pas à vous".
+- **Socket.io** (GPS temps réel, `src/socket/gpsSocket.js`) applique la même isolation en plus du
+  JWT : `match:joinAsCoach`/`match:joinAsPlayer` refusent un match/joueur d'un autre club.
+- **Comptes de démonstration** : deux clubs réels existent en base pour vérifier l'isolation —
+  "CoachBoot FC" (`db/seed.js`, code d'invitation `COACHBOOT-FC-2026`) et "FC Rivière (test)"
+  (`db/seed-second-club.js`, code `FC-RIVIERE-TEST-2026`) — voir `test/multi-tenant-isolation.test.js`
+  et `test/gps-socket-isolation.test.js` pour la vérification automatisée complète.
+
+### ⚠️ Limites honnêtes — Multi-tenant
+
+- Pas de UI d'administration des clubs (création/désactivation) : géré par SQL/scripts de seed.
+- Pas de sélecteur de club à la connexion : un compte appartient à un seul club (email globalement
+  unique, inchangé) ; un admin superadmin voit tout sans possibilité de "filtrer sur un club" côté UI.
+- Pas de Row-Level-Security PostgreSQL : l'isolation est appliquée au niveau applicatif (chaque
+  requête SQL filtre explicitement par `club_id`), pas par une politique RLS en base — une défense
+  en profondeur possible mais non construite dans cette passe.
+
 ## Joueurs
 
 | Méthode | Route | Rôle requis | Description |

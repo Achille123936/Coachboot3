@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth, JWT_SECRET } = require('../middleware/auth');
+const { requireAuth, JWT_SECRET, TOKEN_VERSION } = require('../middleware/auth');
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
 function hashResetToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
@@ -13,9 +13,20 @@ function hashResetToken(token) { return crypto.createHash('sha256').update(token
 const ROLES = ['admin', 'president', 'technical_director', 'head_coach', 'fitness_coach',
   'goalkeeper_coach', 'video_analyst', 'data_analyst', 'player', 'parent', 'federation'];
 
+// Auto-inscription : jamais 'admin' (superadmin plateforme, toutes clubs) — un
+// compte admin ne peut être créé qu'en base directement (seed / opération
+// manuelle), pas via un formulaire public. Corrige au passage une élévation de
+// privilège pré-existante (POST /register acceptait n'importe quel rôle).
+const SELF_REGISTER_ROLES = ROLES.filter((r) => r !== 'admin');
+
 function signToken(user) {
-  return jwt.sign({ id: user.id, email: user.email, role: user.role, full_name: user.full_name },
-    JWT_SECRET, { expiresIn: '7d' });
+  // club_id : null UNIQUEMENT pour role='admin' (superadmin plateforme) — voir
+  // requireClubScope. v: TOKEN_VERSION permet de rejeter, à la vérification,
+  // tout jeton signé avant cette forme (sans club_id fiable) — voir middleware/auth.js.
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role, full_name: user.full_name, club_id: user.club_id ?? null, v: TOKEN_VERSION },
+    JWT_SECRET, { expiresIn: '7d' }
+  );
 }
 
 function sanitizeUser(u) {
@@ -23,34 +34,118 @@ function sanitizeUser(u) {
   return safe;
 }
 
+/** Dérive un slug URL-safe à partir d'un nom de club (minuscules, ascii, tirets). */
+function slugify(name) {
+  return name
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // enlève les accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 48) || 'club';
+}
+
+/** Génère un code d'invitation lisible et probabilistiquement unique (slug + suffixe aléatoire). */
+function generateInviteCode(slug) {
+  const suffix = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 caractères hex
+  return `${slug.toUpperCase()}-${suffix}`;
+}
+
 /**
  * POST /api/auth/register
  * Crée un compte utilisateur et renvoie un jeton JWT (connexion automatique).
+ *
+ * MULTI-CLUB : exactement UN des deux doit être fourni —
+ *  - `invite_code` : rejoint un club EXISTANT (`clubs.invite_code`), pas de
+ *    liste publique de clubs à choisir dans un menu ouvert à tous.
+ *  - `new_club_name` : CRÉE un nouveau club (premier compte de ce club) — le
+ *    slug et un code d'invitation sont générés automatiquement et renvoyés
+ *    dans la réponse (`club.invite_code`) pour que ce premier utilisateur
+ *    puisse le partager avec le reste de son équipe. Chaque équipe crée ainsi
+ *    son propre club au lieu de rejoindre un club préexistant — décision
+ *    produit explicite (voir le plan de la retrofit multi-tenant).
  */
 router.post('/register', [
   body('full_name').trim().isLength({ min: 2 }).withMessage('Le nom complet est requis.'),
   body('email').isEmail().withMessage('Adresse e-mail invalide.'),
   body('password').isLength({ min: 8 }).withMessage('Le mot de passe doit contenir au moins 8 caractères.'),
-  body('role').optional().isIn(ROLES).withMessage('Rôle invalide.'),
+  body('role').optional().isIn(SELF_REGISTER_ROLES).withMessage('Rôle invalide.'),
+  body('invite_code').optional().trim().notEmpty(),
+  body('new_club_name').optional().trim().isLength({ min: 2 }).withMessage('Le nom du club doit contenir au moins 2 caractères.'),
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg, details: errors.array() });
 
-  const { full_name, email, password, role } = req.body;
+  const { full_name, email, password, role, invite_code, new_club_name } = req.body;
+  if (!invite_code && !new_club_name) {
+    return res.status(400).json({ error: "Fournissez soit un code d'invitation (invite_code), soit le nom d'un nouveau club à créer (new_club_name)." });
+  }
+  if (invite_code && new_club_name) {
+    return res.status(400).json({ error: "Fournissez invite_code OU new_club_name, pas les deux." });
+  }
+
   const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
   if (existing.rows.length) return res.status(409).json({ error: 'Un compte existe déjà avec cette adresse e-mail.' });
 
   const password_hash = await bcrypt.hash(password, 10);
   const initials = full_name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 
-  const { rows } = await pool.query(
-    `INSERT INTO users (full_name, email, password_hash, role, avatar_initials)
-     VALUES ($1,$2,$3,$4,$5) RETURNING id, full_name, email, role, avatar_initials, created_at`,
-    [full_name.trim(), email.toLowerCase(), password_hash, role || 'player', initials]
-  );
-  const user = rows[0];
-  const token = signToken(user);
-  res.status(201).json({ user, token });
+  let clubId, createdClub = null;
+
+  if (invite_code) {
+    const { rows: clubRows } = await pool.query(
+      'SELECT id FROM clubs WHERE invite_code = $1 AND is_active = TRUE', [invite_code.trim()]
+    );
+    if (!clubRows.length) return res.status(404).json({ error: "Code d'invitation de club introuvable ou inactif." });
+    clubId = clubRows[0].id;
+
+    const { rows } = await pool.query(
+      `INSERT INTO users (full_name, email, password_hash, role, avatar_initials, club_id)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, full_name, email, role, avatar_initials, club_id, created_at`,
+      [full_name.trim(), email.toLowerCase(), password_hash, role || 'player', initials, clubId]
+    );
+    const user = rows[0];
+    return res.status(201).json({ user, token: signToken(user) });
+  }
+
+  // new_club_name : crée le club ET son premier utilisateur dans une seule transaction —
+  // jamais un club orphelin sans utilisateur si l'insertion du compte échoue.
+  const baseSlug = slugify(new_club_name);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Un slug dérivé du nom peut déjà exister (deux clubs au nom proche) — on
+    // ajoute un court suffixe aléatoire dans ce cas plutôt que d'échouer.
+    let slug = baseSlug;
+    const { rows: slugTaken } = await client.query('SELECT 1 FROM clubs WHERE slug = $1', [slug]);
+    if (slugTaken.length) slug = `${baseSlug}-${crypto.randomBytes(2).toString('hex')}`;
+    const inviteCode = generateInviteCode(baseSlug);
+
+    const { rows: clubRows } = await client.query(
+      `INSERT INTO clubs (name, slug, invite_code) VALUES ($1,$2,$3) RETURNING id, name, slug, invite_code`,
+      [new_club_name.trim(), slug, inviteCode]
+    );
+    createdClub = clubRows[0];
+    clubId = createdClub.id;
+
+    // Rôle par défaut du créateur d'un club : technical_director (rôle de
+    // gestion existant), pas 'player' — mais l'appelant peut choisir un autre
+    // rôle de club explicitement (jamais 'admin', voir SELF_REGISTER_ROLES).
+    const { rows: userRows } = await client.query(
+      `INSERT INTO users (full_name, email, password_hash, role, avatar_initials, club_id)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, full_name, email, role, avatar_initials, club_id, created_at`,
+      [full_name.trim(), email.toLowerCase(), password_hash, role || 'technical_director', initials, clubId]
+    );
+
+    await client.query('COMMIT');
+    const user = userRows[0];
+    res.status(201).json({ user, token: signToken(user), club: createdClub });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }));
 
 /**
@@ -82,7 +177,7 @@ router.post('/login', [
  */
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT id, full_name, email, role, avatar_initials, created_at FROM users WHERE id = $1', [req.user.id]
+    'SELECT id, full_name, email, role, avatar_initials, club_id, created_at FROM users WHERE id = $1', [req.user.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'Utilisateur introuvable.' });
   res.json({ user: rows[0] });

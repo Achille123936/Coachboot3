@@ -67,10 +67,10 @@ const CB_API = {
     const result = await this.request('/auth/login', { method: 'POST', body: { email, password }, auth: false });
     return { token: result.token, user: { ...result.user, name: result.user.full_name } };
   },
-  async register({ name, email, password, role }) {
-    const payload = { full_name: name, email, password, role: this.ROLE_MAP[role] || 'player' };
+  async register({ name, email, password, role, invite_code, new_club_name }) {
+    const payload = { full_name: name, email, password, role: this.ROLE_MAP[role] || undefined, invite_code, new_club_name };
     const result = await this.request('/auth/register', { method: 'POST', body: payload, auth: false });
-    return { token: result.token, user: { ...result.user, name: result.user.full_name } };
+    return { token: result.token, user: { ...result.user, name: result.user.full_name }, club: result.club || null };
   },
   async me() {
     const result = await this.request('/auth/me');

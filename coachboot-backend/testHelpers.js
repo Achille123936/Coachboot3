@@ -44,6 +44,15 @@ const DEMO_ACCOUNTS = {
   fitness_coach: 'prepa.physique@coachboot.app',
   technical_director: 'directeur.technique@coachboot.app',
   player: 'joueur@coachboot.app',
+  admin: 'admin@coachboot.app', // superadmin plateforme (multi-club) — club_id null, voir middleware/auth.js
 };
 
-module.exports = { BASE_URL, request, loginAs, DEMO_ACCOUNTS };
+// Deuxième club de démonstration (db/seed-second-club.js) — utilisé par les
+// tests d'isolation multi-tenant (test/multi-tenant-isolation.test.js).
+const DEMO_ACCOUNTS_CLUB2 = {
+  head_coach: 'entraineur@fc-riviere-test.app',
+  technical_director: 'directeur.technique@fc-riviere-test.app',
+  player: 'joueur@fc-riviere-test.app',
+};
+
+module.exports = { BASE_URL, request, loginAs, DEMO_ACCOUNTS, DEMO_ACCOUNTS_CLUB2 };

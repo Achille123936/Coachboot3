@@ -3,6 +3,19 @@
 -- ============================================================================
 -- Convention : tables au pluriel, clés primaires UUID, timestamps automatiques.
 -- Exécution : psql -U postgres -d coachboot -f db/schema.sql
+--
+-- MULTI-TENANT (clubs) : ce fichier n'ajoute `club_id` qu'en colonne NULLABLE
+-- sur chaque table concernée (rejouable sans risque sur une base déjà peuplée,
+-- comme toutes les migrations `ADD COLUMN IF NOT EXISTS` précédentes). Sur une
+-- base qui a déjà des données (ex. Neon en production), lancer ENSUITE, dans
+-- l'ordre :
+--   1. node db/backfill-clubs.js         (assigne toute ligne existante à un
+--                                          club par défaut « CoachBoot FC »)
+--   2. node -e "...db/enforce-club-not-null.sql..." (voir ce fichier — verrouille
+--                                          NOT NULL + la contrainte CHECK sur
+--                                          users, UNE FOIS le backfill vérifié)
+-- Sur une base neuve (CI, nouveau poste), `db/seed.js` insère déjà `club_id`
+-- partout — ces deux étapes ne sont jamais nécessaires.
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- pour gen_random_uuid()
@@ -18,6 +31,22 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ---------------------------------------------------------------------------
+-- CLUBS — tenants (multi-club/SaaS). Isole entièrement les données d'un club
+-- de celles d'un autre — voir docs/API.md « Multi-tenant (clubs) ». `admin`
+-- est le seul rôle SANS club (superadmin plateforme, club_id NULL, voir la
+-- contrainte sur `users` ci-dessous).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS clubs (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name         VARCHAR(160) NOT NULL,
+  slug         VARCHAR(60) UNIQUE NOT NULL,
+  invite_code  VARCHAR(24) UNIQUE NOT NULL, -- requis à l'inscription (POST /api/auth/register)
+  is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
 -- USERS — comptes de connexion (staff, joueurs, parents...)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
@@ -28,6 +57,10 @@ CREATE TABLE IF NOT EXISTS users (
   role           user_role NOT NULL DEFAULT 'player',
   avatar_initials VARCHAR(4) DEFAULT '',
   is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+  -- club_id NULL uniquement pour role='admin' (superadmin plateforme, toutes
+  -- clubs) — NOT NULL pour tout autre rôle, imposé par chk_users_club_id
+  -- ci-dessous UNE FOIS le backfill terminé (voir db/backfill-clubs.js).
+  club_id        UUID REFERENCES clubs(id),
   -- Réinitialisation de mot de passe : seul le HACHAGE du jeton est stocké
   -- (jamais le jeton en clair), avec expiration — voir POST /auth/forgot-password.
   password_reset_token_hash VARCHAR(64),
@@ -37,24 +70,30 @@ CREATE TABLE IF NOT EXISTS users (
 );
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token_hash VARCHAR(64);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_users_club ON users(club_id);
 
 -- ---------------------------------------------------------------------------
 -- TEAMS — équipes du club (catégories d'âge, niveau)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS teams (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id     UUID REFERENCES clubs(id),
   name        VARCHAR(120) NOT NULL,
   category    VARCHAR(40)  NOT NULL,        -- ex: Senior, U23, U19, U17
   level       VARCHAR(40)  NOT NULL DEFAULT 'Développement', -- Elite, Développement, Académie
   coach_name  VARCHAR(120),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_teams_club ON teams(club_id);
 
 -- ---------------------------------------------------------------------------
 -- PLAYERS — fiche joueur (liée en option à un compte utilisateur)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS players (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id        UUID REFERENCES clubs(id),
   user_id        UUID REFERENCES users(id) ON DELETE SET NULL,
   team_id        UUID REFERENCES teams(id) ON DELETE SET NULL,
   first_name     VARCHAR(80) NOT NULL,
@@ -68,12 +107,15 @@ CREATE TABLE IF NOT EXISTS players (
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_players_team ON players(team_id);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_players_club ON players(club_id);
 
 -- ---------------------------------------------------------------------------
 -- MATCHES — calendrier et résultats
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS matches (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id        UUID REFERENCES clubs(id),
   home_team      VARCHAR(120) NOT NULL,
   away_team      VARCHAR(120) NOT NULL,
   competition    VARCHAR(120) NOT NULL,
@@ -86,12 +128,15 @@ CREATE TABLE IF NOT EXISTS matches (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date);
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_matches_club ON matches(club_id);
 
 -- ---------------------------------------------------------------------------
 -- TRAININGS — séances d'entraînement
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS trainings (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id          UUID REFERENCES clubs(id),
   team_id          UUID REFERENCES teams(id) ON DELETE CASCADE,
   session_date     TIMESTAMPTZ NOT NULL,
   type             VARCHAR(60) NOT NULL,   -- Tactique, Physique, Technique, Récupération...
@@ -100,12 +145,15 @@ CREATE TABLE IF NOT EXISTS trainings (
   notes            TEXT,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE trainings ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_trainings_club ON trainings(club_id);
 
 -- ---------------------------------------------------------------------------
 -- SCOUTING PROFILES — joueurs suivis par la cellule de recrutement
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS scouting_profiles (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id       UUID REFERENCES clubs(id),
   name          VARCHAR(120) NOT NULL,
   current_club  VARCHAR(120),
   position      VARCHAR(40),
@@ -117,6 +165,8 @@ CREATE TABLE IF NOT EXISTS scouting_profiles (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE scouting_profiles ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE scouting_profiles ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_scouting_profiles_club ON scouting_profiles(club_id);
 
 -- ---------------------------------------------------------------------------
 -- COURSES / QUIZZES / CERTIFICATES — formation continue
@@ -267,6 +317,7 @@ ALTER TABLE certificates ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES cour
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS reports (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id     UUID REFERENCES clubs(id),
   title       VARCHAR(160) NOT NULL,
   type        VARCHAR(40) NOT NULL,   -- Match, Physique, Scouting, Médical, Tactique
   report_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -274,13 +325,16 @@ CREATE TABLE IF NOT EXISTS reports (
   created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_reports_club ON reports(club_id);
 
 -- ---------------------------------------------------------------------------
 -- NOTIFICATIONS
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID REFERENCES users(id) ON DELETE CASCADE, -- NULL = diffusion à tous
+  club_id    UUID REFERENCES clubs(id),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE, -- NULL = diffusion à TOUT LE CLUB (club_id), jamais à tous les clubs
   title      VARCHAR(160) NOT NULL,
   body       TEXT,
   category   VARCHAR(30) NOT NULL DEFAULT 'info', -- info, alerte, succès, avertissement
@@ -288,12 +342,15 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_notifications_club ON notifications(club_id);
 
 -- ---------------------------------------------------------------------------
 -- INJURIES — suivi médical
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS injuries (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id         UUID REFERENCES clubs(id),
   player_id       UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   type            VARCHAR(120) NOT NULL,
   start_date      DATE NOT NULL,
@@ -302,12 +359,15 @@ CREATE TABLE IF NOT EXISTS injuries (
   notes           TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE injuries ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_injuries_club ON injuries(club_id);
 
 -- ---------------------------------------------------------------------------
 -- GPS SESSIONS — données de suivi GPS par joueur / par match
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gps_sessions (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id             UUID REFERENCES clubs(id),
   player_id           UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   match_id            UUID REFERENCES matches(id) ON DELETE SET NULL,
   session_date        DATE NOT NULL,
@@ -318,12 +378,15 @@ CREATE TABLE IF NOT EXISTS gps_sessions (
   high_intensity_km   NUMERIC(5,2),
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE gps_sessions ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_gps_sessions_club ON gps_sessions(club_id);
 
 -- ---------------------------------------------------------------------------
 -- GPS POINTS — trace brute (un point par relevé navigator.geolocation)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gps_points (
   id            BIGSERIAL PRIMARY KEY,
+  club_id       UUID REFERENCES clubs(id),
   session_id    UUID NOT NULL REFERENCES gps_sessions(id) ON DELETE CASCADE,
   seq           INTEGER NOT NULL,
   latitude      NUMERIC(9,6) NOT NULL,
@@ -334,12 +397,15 @@ CREATE TABLE IF NOT EXISTS gps_points (
   recorded_at   TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_gps_points_session ON gps_points (session_id, seq);
+ALTER TABLE gps_points ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_gps_points_club ON gps_points(club_id);
 
 -- ---------------------------------------------------------------------------
 -- GPS STATISTICS — métriques physiques calculées pour une session (1↔1)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gps_statistics (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id                UUID REFERENCES clubs(id),
   session_id             UUID NOT NULL UNIQUE REFERENCES gps_sessions(id) ON DELETE CASCADE,
   distance_km            NUMERIC(6,3),
   high_intensity_km      NUMERIC(6,3),
@@ -358,6 +424,8 @@ CREATE TABLE IF NOT EXISTS gps_statistics (
   created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE gps_statistics ADD COLUMN IF NOT EXISTS stats_source VARCHAR(20) NOT NULL DEFAULT 'client_trusted';
+ALTER TABLE gps_statistics ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_gps_statistics_club ON gps_statistics(club_id);
 
 -- ---------------------------------------------------------------------------
 -- MATCH LIVE — module « Match Live Camera + GPS Tracking » (diffusion + suivi
@@ -367,6 +435,7 @@ ALTER TABLE gps_statistics ADD COLUMN IF NOT EXISTS stats_source VARCHAR(20) NOT
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS matches_live (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id       UUID REFERENCES clubs(id),
   match_id      UUID REFERENCES matches(id) ON DELETE SET NULL,
   team_home     VARCHAR(120) NOT NULL,
   team_away     VARCHAR(120) NOT NULL,
@@ -378,6 +447,8 @@ CREATE TABLE IF NOT EXISTS matches_live (
   stream_url    TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE matches_live ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_matches_live_club ON matches_live(club_id);
 
 -- ---------------------------------------------------------------------------
 -- GPS LIVE TRACKING — relevés GPS temps réel par joueur pendant une session
@@ -385,6 +456,7 @@ CREATE TABLE IF NOT EXISTS matches_live (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gps_live_tracking (
   id            BIGSERIAL PRIMARY KEY,
+  club_id       UUID REFERENCES clubs(id),
   match_id      UUID NOT NULL REFERENCES matches_live(id) ON DELETE CASCADE,
   player_id     UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   latitude      NUMERIC(9,6),
@@ -396,7 +468,9 @@ CREATE TABLE IF NOT EXISTS gps_live_tracking (
 );
 -- `ADD COLUMN IF NOT EXISTS` : rejouable sur une base déjà créée avant l'ajout du temps réel Socket.io.
 ALTER TABLE gps_live_tracking ADD COLUMN IF NOT EXISTS acceleration NUMERIC(5,2);
+ALTER TABLE gps_live_tracking ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
 CREATE INDEX IF NOT EXISTS idx_gps_live_tracking_match ON gps_live_tracking (match_id, player_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_gps_live_tracking_club ON gps_live_tracking(club_id);
 
 -- ---------------------------------------------------------------------------
 -- LIVE EVENTS — événements tagués pendant un Match Live (sprint, tir, passe,
@@ -404,6 +478,7 @@ CREATE INDEX IF NOT EXISTS idx_gps_live_tracking_match ON gps_live_tracking (mat
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS live_events (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id     UUID REFERENCES clubs(id),
   match_id    UUID NOT NULL REFERENCES matches_live(id) ON DELETE CASCADE,
   player_id   UUID REFERENCES players(id) ON DELETE SET NULL,
   event_type  VARCHAR(30) NOT NULL, -- sprint, tir, passe, interception, recuperation, accélération...
@@ -411,6 +486,8 @@ CREATE TABLE IF NOT EXISTS live_events (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_live_events_match ON live_events (match_id, time);
+ALTER TABLE live_events ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_live_events_club ON live_events(club_id);
 
 -- ---------------------------------------------------------------------------
 -- ML MODELS — modèles CoachBoot IA entraînés (coachboot-backend/ml/train.py).
@@ -420,6 +497,7 @@ CREATE INDEX IF NOT EXISTS idx_live_events_match ON live_events (match_id, time)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ml_models (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id         UUID REFERENCES clubs(id),
   name            VARCHAR(160) NOT NULL,
   task            VARCHAR(20) NOT NULL,   -- regression | classification
   target          VARCHAR(80) NOT NULL,
@@ -436,7 +514,9 @@ CREATE TABLE IF NOT EXISTS ml_models (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE ml_models ADD COLUMN IF NOT EXISTS dataset_type VARCHAR(20) NOT NULL DEFAULT 'unknown';
+ALTER TABLE ml_models ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
 CREATE INDEX IF NOT EXISTS idx_ml_models_task_target_status ON ml_models (task, target, status);
+CREATE INDEX IF NOT EXISTS idx_ml_models_club ON ml_models(club_id);
 
 -- ---------------------------------------------------------------------------
 -- TÉLESTRATION VIDÉO — annotations tactiques manuelles (flèches, cercles,
@@ -450,6 +530,7 @@ CREATE INDEX IF NOT EXISTS idx_ml_models_task_target_status ON ml_models (task, 
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS video_clips (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id           UUID REFERENCES clubs(id),
   match_id          UUID REFERENCES matches(id) ON DELETE SET NULL,
   title             VARCHAR(160) NOT NULL,
   video_url         TEXT,
@@ -467,9 +548,12 @@ CREATE TABLE IF NOT EXISTS video_clips (
 );
 ALTER TABLE video_clips ADD COLUMN IF NOT EXISTS player_id UUID REFERENCES players(id) ON DELETE SET NULL;
 ALTER TABLE video_clips ADD COLUMN IF NOT EXISTS recorded_at_start TIMESTAMPTZ;
+ALTER TABLE video_clips ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
+CREATE INDEX IF NOT EXISTS idx_video_clips_club ON video_clips(club_id);
 
 CREATE TABLE IF NOT EXISTS video_annotations (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id              UUID REFERENCES clubs(id),
   clip_id              UUID NOT NULL REFERENCES video_clips(id) ON DELETE CASCADE,
   type                 VARCHAR(20) NOT NULL, -- arrow | circle | line | rectangle | freehand | text | player_marker
   data                 JSONB NOT NULL,       -- points/coords/color/thickness/text/player_ref, flexible par type
@@ -480,10 +564,12 @@ CREATE TABLE IF NOT EXISTS video_annotations (
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE video_annotations ADD COLUMN IF NOT EXISTS player_id UUID REFERENCES players(id) ON DELETE SET NULL;
+ALTER TABLE video_annotations ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
 CREATE INDEX IF NOT EXISTS idx_video_annotations_clip ON video_annotations (clip_id, timestamp_start_sec);
 CREATE INDEX IF NOT EXISTS idx_video_clips_match ON video_clips (match_id);
 CREATE INDEX IF NOT EXISTS idx_video_clips_player ON video_clips (player_id);
 CREATE INDEX IF NOT EXISTS idx_video_annotations_player ON video_annotations (player_id);
+CREATE INDEX IF NOT EXISTS idx_video_annotations_club ON video_annotations(club_id);
 
 -- ---------------------------------------------------------------------------
 -- trigger générique : mise à jour automatique de updated_at

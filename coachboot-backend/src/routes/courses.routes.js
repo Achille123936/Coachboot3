@@ -105,6 +105,9 @@ router.post('/exercises/:exerciseId/complete', requireAuth, asyncHandler(async (
   res.json({ completed: true, progress });
 }));
 
+// Contenu Academy PARTAGÉ, plateforme-entière (retrofit multi-club) — un
+// technical_director de N'IMPORTE quel club peut créer un cours "à la main"
+// hors du générateur IA, comme avant la retrofit, en plus du bypass 'admin'.
 router.post('/', requireAuth, requireRole('technical_director'), asyncHandler(async (req, res) => {
   const { title, level, duration_label } = req.body;
   if (!title) return res.status(400).json({ error: 'Le titre du cours est requis.' });

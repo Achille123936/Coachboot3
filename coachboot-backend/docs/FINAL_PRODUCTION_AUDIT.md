@@ -468,3 +468,82 @@ AI Tutor par leçon, AI grading du projet final (en conflit direct avec une déc
 documentée — TP toujours auto-évalués), QR code de certification, dashboard admin multi-écrans,
 statut brouillon/publié, édition fine d'une leçon/question générée, vérification automatique
 qu'un exercice pratique a été réellement effectué, rôle « Academy Manager » dédié.
+
+## Retrofit multi-tenant (clubs) — isolation complète entre clubs
+
+Demande utilisateur explicite ("un utilisateur ne peut pas voir les données d'une autre équipe"),
+clarifiée par question directe : isolation **multi-club complète** (SaaS), pas un simple scoping
+intra-club. Le plus gros changement architectural de la session : nouvelle table `clubs`, `club_id`
+sur 18 des 29 tables, JWT/`requireAuth`/`requireRole` étendus, ~19 fichiers de routes retouchés,
+Socket.io (`gpsSocket.js`) retouché.
+
+- **Schéma** : table `clubs` (`invite_code` unique) ; `club_id` nullable ajouté partout
+  (idempotent), puis verrouillé `NOT NULL` + contrainte CHECK sur `users` (`admin` = seul rôle sans
+  club) une fois `db/backfill-clubs.js` confirmé sans ligne orpheline. Academy (`courses` et
+  descendants) reste explicitement **partagée, plateforme-entière** — décision produit confirmée
+  avec l'utilisateur, pas supposée. Contribution au contenu (génération IA `/academy/generate` +
+  `/academy/courses`, et création manuelle `POST /courses`) reste ouverte à **n'importe quel**
+  `technical_director`, de n'importe quel club (pas réservée au superadmin) — confirmé
+  explicitement avec l'utilisateur après une première passe l'ayant, à tort, réservée à `admin`.
+- **Auth** : JWT gagne `club_id` + `v: 2` ; `requireAuth` reste sans aller-retour DB (design
+  existant conservé) mais rejette tout jeton `v !== 2` — force une reconnexion pour les jetons déjà
+  émis (comptes de démo, non critique). Nouveau `requireClubScope` + `utils/tenantScope.js`
+  (`addClubFilter`) réutilisés sur 14 routeurs. Inscription par **code d'invitation de club**
+  (décision confirmée avec l'utilisateur, plutôt qu'une liste publique de clubs) ; `role: 'admin'`
+  retiré de l'auto-inscription (corrige une élévation de privilège pré-existante trouvée pendant
+  l'exploration).
+- **Route par route** : chaque liste filtre par `club_id`, chaque mutation par `:id` renvoie 404
+  (jamais 403) sur une ressource d'un autre club — réutilise le pattern déjà présent
+  (`if (!rows.length) return 404`) sans nouvelle branche. Cas particuliers traités explicitement :
+  `dashboard.routes.js` (suppression du `CLUB_NAME` codé en dur — comparaison désormais faite via
+  `clubs.name`), `assistant.routes.js` (contexte IA scopé par club, admin explicitement refusé
+  plutôt que d'agréger tous les clubs), `notifications.routes.js` (`user_id IS NULL` = diffusion au
+  club, plus jamais à toute la plateforme — bug réel trouvé pendant l'exploration), `injuries`
+  (risk-scores agrégé par club), `reports` (scoping club sans verrouillage par auteur — partage
+  d'équipe assumé), IDOR `requireOwnPlayerIfPlayerRole` composé AVEC (pas remplacé par) le filtre
+  club, `ml.routes.js` (fichiers sur disque laissés en UUID opaque, seule la ligne DB est scopée).
+- **Socket.io** : `canReportGpsFor` interrogeait 0 fois la base pour le staff (autorisation
+  inconditionnelle) — bug réel trouvé, corrigé en vérifiant systématiquement le club du joueur
+  cible. `match:joinAsCoach` n'avait AUCUNE vérification d'autorisation au-delà du JWT — corrigé.
+- **Bugs réels trouvés et corrigés pendant la vérification** (pas seulement pendant l'écriture) :
+  alias SQL manquant dans `gps.routes.js` (`/player/:id/stats`, 500 réel), ambiguïté de colonne
+  `club_id` dans `video-annotations.routes.js` (`GET /clips`, jointure avec `users` qui a aussi
+  `club_id` désormais, 500 réel), données de fixture de test avec `home_team` ne correspondant pas
+  exactement à `clubs.name` (aurait faussé silencieusement le calcul des points du dashboard).
+- **Vérification réelle** : `test/multi-tenant-isolation.test.js` (deux clubs réels en base —
+  "CoachBoot FC" et "FC Rivière (test)" — lecture/mutation/notifications/dashboard/contexte IA/
+  admin cross-club/inscription par code, toujours par comparaison d'ids réels, jamais par comptage
+  seul) + `test/gps-socket-isolation.test.js` (nouvelle dépendance de dev `socket.io-client`,
+  vérifie le rejet réel de `match:joinAsCoach`/`match:joinAsPlayer` cross-club). Suite complète :
+  **106/106 tests verts** (backend redémarré avant chaque run, un seul run exploité par tentative,
+  conformément à la convention du projet). Un échec transitoire non lié (503 réel renvoyé par
+  l'API Gemini elle-même pendant un run) a été isolé et confirmé résolu par un nouveau run du seul
+  fichier concerné avant le run final complet.
+- **Ajustement assumé** : `authLimiter` (anti-bruteforce `/auth/*`) désactivé hors production
+  (`NODE_ENV !== 'production'`) — la suite de tests, exécutant chaque fichier dans son propre
+  process (donc sans partage du cache de jetons entre fichiers), dépasse légitimement l'ancien
+  seuil de 20 requêtes/15min depuis l'ajout de comptes multi-club ; la protection reste pleine en
+  production.
+
+**Hors périmètre, documenté honnêtement** (voir `docs/API.md`, section Multi-tenant) : UI
+d'administration des clubs, sélecteur de club à la connexion, Row-Level-Security PostgreSQL.
+
+### Suivi — inscription en libre-service (création de club) + Academy ouverte à tout club
+
+Deux ajustements demandés juste après la retrofit multi-tenant, chacun confirmé par question
+directe avant implémentation :
+
+1. **Chaque équipe crée son propre club à l'inscription**, plutôt que de rejoindre un club
+   pré-créé via un code fixe. `POST /auth/register` accepte désormais soit `invite_code` (rejoindre
+   un club existant), soit `new_club_name` (créer un nouveau club — slug + `invite_code` générés
+   automatiquement, club + premier compte insérés dans une seule transaction, rôle par défaut
+   `technical_director`). Le code généré est renvoyé dans la réponse (`club.invite_code`) pour que
+   ce premier compte le partage avec son équipe. `register.html` a un bouton pour basculer entre
+   les deux modes.
+2. **Génération/gestion Academy réouverte à tout `technical_director`** (pas réservée au
+   superadmin) — la première passe de la retrofit avait, par excès de prudence, réservé
+   `/academy/generate`, `/academy/courses` et `POST /courses` à `admin` seul ; corrigé après
+   clarification explicite de l'utilisateur (contenu reste partagé plateforme-entière, mais
+   n'importe quel club peut y contribuer).
+
+109/109 tests verts après ces deux changements (backend redémarré avant le run).

@@ -12,7 +12,14 @@ async function seed() {
     console.log('→ Nettoyage des tables (ordre respectant les clés étrangères)...');
     await client.query(`TRUNCATE gps_sessions, injuries, notifications, reports, certificates,
       quiz_attempts, quizzes, course_progress, courses, scouting_profiles, trainings,
-      matches, players, teams, users RESTART IDENTITY CASCADE`);
+      matches, players, teams, users, clubs RESTART IDENTITY CASCADE`);
+
+    console.log('→ Création du club par défaut...');
+    const { rows: clubRows } = await client.query(
+      `INSERT INTO clubs (name, slug, invite_code) VALUES ($1,$2,$3) RETURNING id`,
+      ['CoachBoot FC', 'coachboot-fc', 'COACHBOOT-FC-2026']
+    );
+    const clubId = clubRows[0].id;
 
     console.log('→ Création des utilisateurs de démonstration...');
     const passwordHash = await bcrypt.hash('CoachBoot2026!', 10);
@@ -31,10 +38,12 @@ async function seed() {
     ];
     const userIds = {};
     for (const [full_name, email, role, initials] of usersToInsert) {
+      // 'admin' = superadmin plateforme, sans club (club_id NULL) — voir chk_users_club_id.
+      const userClubId = role === 'admin' ? null : clubId;
       const { rows } = await client.query(
-        `INSERT INTO users (full_name, email, password_hash, role, avatar_initials)
-         VALUES ($1,$2,$3,$4,$5) RETURNING id, role, email`,
-        [full_name, email, passwordHash, role, initials]
+        `INSERT INTO users (full_name, email, password_hash, role, avatar_initials, club_id)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, role, email`,
+        [full_name, email, passwordHash, role, initials, userClubId]
       );
       userIds[email] = rows[0].id;
     }
@@ -50,8 +59,8 @@ async function seed() {
     const teamIds = [];
     for (const [name, category, level, coach_name] of teams) {
       const { rows } = await client.query(
-        `INSERT INTO teams (name, category, level, coach_name) VALUES ($1,$2,$3,$4) RETURNING id`,
-        [name, category, level, coach_name]
+        `INSERT INTO teams (club_id, name, category, level, coach_name) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [clubId, name, category, level, coach_name]
       );
       teamIds.push(rows[0].id);
     }
@@ -70,9 +79,9 @@ async function seed() {
     const playerIds = [];
     for (const [first_name, last_name, position, jersey_number, birthdate, teamIdx, status, form_score, user_id] of players) {
       const { rows } = await client.query(
-        `INSERT INTO players (first_name,last_name,position,jersey_number,birthdate,team_id,status,form_score,user_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-        [first_name, last_name, position, jersey_number, birthdate, teamIds[teamIdx], status, form_score, user_id]
+        `INSERT INTO players (club_id,first_name,last_name,position,jersey_number,birthdate,team_id,status,form_score,user_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+        [clubId, first_name, last_name, position, jersey_number, birthdate, teamIds[teamIdx], status, form_score, user_id]
       );
       playerIds.push(rows[0].id);
     }
@@ -88,9 +97,9 @@ async function seed() {
     const matchIds = [];
     for (const [home_team, away_team, competition, match_date, home_score, away_score, status, possession_pct, xg] of matches) {
       const { rows } = await client.query(
-        `INSERT INTO matches (home_team,away_team,competition,match_date,home_score,away_score,status,possession_pct,xg)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-        [home_team, away_team, competition, match_date, home_score, away_score, status, possession_pct, xg]
+        `INSERT INTO matches (club_id,home_team,away_team,competition,match_date,home_score,away_score,status,possession_pct,xg)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+        [clubId, home_team, away_team, competition, match_date, home_score, away_score, status, possession_pct, xg]
       );
       matchIds.push(rows[0].id);
     }
@@ -99,9 +108,9 @@ async function seed() {
     const trainingTypes = ['Récupération active', 'Tactique', 'Physique', 'Technique', 'Tactique pré-match'];
     for (let i = 0; i < 10; i++) {
       await client.query(
-        `INSERT INTO trainings (team_id, session_date, type, duration_minutes, rpe, notes)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [teamIds[0], `2026-07-${(10 + i)}T09:00:00Z`, trainingTypes[i % trainingTypes.length], 45 + (i % 4) * 10, 3 + (i % 6), null]
+        `INSERT INTO trainings (club_id, team_id, session_date, type, duration_minutes, rpe, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [clubId, teamIds[0], `2026-07-${(10 + i)}T09:00:00Z`, trainingTypes[i % trainingTypes.length], 45 + (i % 4) * 10, 3 + (i % 6), null]
       );
     }
 
@@ -114,8 +123,8 @@ async function seed() {
     ];
     for (const [name, current_club, position, age, rating, tag] of scouting) {
       await client.query(
-        `INSERT INTO scouting_profiles (name, current_club, position, age, rating, tag) VALUES ($1,$2,$3,$4,$5,$6)`,
-        [name, current_club, position, age, rating, tag]
+        `INSERT INTO scouting_profiles (club_id, name, current_club, position, age, rating, tag) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [clubId, name, current_club, position, age, rating, tag]
       );
     }
 
@@ -167,7 +176,7 @@ async function seed() {
       ['Rapport tactique — vs FC Nord', 'Tactique', '2026-08-02'],
     ];
     for (const [title, type, report_date] of reports) {
-      await client.query(`INSERT INTO reports (title, type, report_date, created_by) VALUES ($1,$2,$3,$4)`, [title, type, report_date, coachId]);
+      await client.query(`INSERT INTO reports (club_id, title, type, report_date, created_by) VALUES ($1,$2,$3,$4,$5)`, [clubId, title, type, report_date, coachId]);
     }
 
     console.log('→ Création des notifications...');
@@ -177,30 +186,31 @@ async function seed() {
       [null, 'Rapport de scouting', '3 nouveaux profils ajoutés', 'succès'],
     ];
     for (const [user_id, title, body, category] of notifications) {
-      await client.query(`INSERT INTO notifications (user_id, title, body, category) VALUES ($1,$2,$3,$4)`, [user_id, title, body, category]);
+      await client.query(`INSERT INTO notifications (club_id, user_id, title, body, category) VALUES ($1,$2,$3,$4,$5)`, [clubId, user_id, title, body, category]);
     }
 
     console.log('→ Création des blessures...');
     await client.query(
-      `INSERT INTO injuries (player_id, type, start_date, expected_return, status) VALUES ($1,$2,$3,$4,$5)`,
-      [playerIds[1], 'Ischio-jambiers', '2026-07-12', '2026-08-16', 'En soins']
+      `INSERT INTO injuries (club_id, player_id, type, start_date, expected_return, status) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [clubId, playerIds[1], 'Ischio-jambiers', '2026-07-12', '2026-08-16', 'En soins']
     );
     await client.query(
-      `INSERT INTO injuries (player_id, type, start_date, expected_return, status) VALUES ($1,$2,$3,$4,$5)`,
-      [playerIds[5], 'Cheville (entorse légère)', '2026-07-28', '2026-08-09', 'Réathlétisation']
+      `INSERT INTO injuries (club_id, player_id, type, start_date, expected_return, status) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [clubId, playerIds[5], 'Cheville (entorse légère)', '2026-07-28', '2026-08-09', 'Réathlétisation']
     );
 
     console.log('→ Création des sessions GPS...');
     for (let i = 0; i < 5; i++) {
       await client.query(
-        `INSERT INTO gps_sessions (player_id, match_id, session_date, distance_km, sprints, top_speed_kmh, high_intensity_km)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [playerIds[0], matchIds[i], matches[i][3].slice(0, 10), 10 + Math.random() * 2, 18 + Math.floor(Math.random() * 8), 30 + Math.random() * 3, 1.5 + Math.random()]
+        `INSERT INTO gps_sessions (club_id, player_id, match_id, session_date, distance_km, sprints, top_speed_kmh, high_intensity_km)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [clubId, playerIds[0], matchIds[i], matches[i][3].slice(0, 10), 10 + Math.random() * 2, 18 + Math.floor(Math.random() * 8), 30 + Math.random() * 3, 1.5 + Math.random()]
       );
     }
 
     await client.query('COMMIT');
     console.log('\n✅ Base de données initialisée avec succès.');
+    console.log(`   Club par défaut : CoachBoot FC (code d'invitation : COACHBOOT-FC-2026)`);
     console.log('   Comptes de démonstration (mot de passe pour tous : CoachBoot2026!) :');
     usersToInsert.forEach(([, email, role]) => console.log(`   - ${email}  (${role})`));
   } catch (err) {

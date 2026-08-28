@@ -58,6 +58,25 @@ node db/seed-academy.js
 npm start
 ```
 
+### Retrofit multi-tenant (clubs) sur une base EXISTANTE déjà peuplée
+
+`db/schema.sql` ajoute la table `clubs` et une colonne `club_id` **nullable** sur 18 tables — sûr à
+rejouer sur une base qui a déjà des données réelles. Sur une base **neuve** (jamais seedée), rien de
+plus à faire : `db/seed.js` insère déjà `club_id` partout. Sur une base **existante** (ex. Neon déjà
+en production), lancer ensuite, dans l'ordre :
+
+```bash
+node -e "require('dotenv').config(); const fs=require('fs'); const pool=require('./src/config/db'); pool.query(fs.readFileSync('db/schema.sql','utf8')).then(()=>pool.end())"
+node db/backfill-clubs.js   # crée un club "CoachBoot FC" par défaut, y rattache toute ligne orpheline
+node -e "require('dotenv').config(); const fs=require('fs'); const pool=require('./src/config/db'); pool.query(fs.readFileSync('db/enforce-club-not-null.sql','utf8')).then(()=>pool.end())"
+```
+
+`db/backfill-clubs.js` s'arrête (ROLLBACK) et affiche le détail si une table garde des lignes sans
+`club_id` après le rattachement — `enforce-club-not-null.sql` (verrou `NOT NULL` + contrainte CHECK
+sur `users`) ne doit être lancé qu'une fois ce backfill confirmé propre. **Tous les jetons JWT déjà
+émis avant cette migration sont invalidés** (nouveau claim `v: 2`, voir docs/API.md) — chaque
+utilisateur doit simplement se reconnecter.
+
 **Vérifié réellement** (pas seulement écrit) : connexion TLS établie (`SELECT version()` confirme
 PostgreSQL 18.6 côté Neon), schéma appliqué (27 tables), seeds exécutés, `/api/health` et
 `/api/health/ready` renvoient `db: up`, connexion + requêtes authentifiées réelles (players,

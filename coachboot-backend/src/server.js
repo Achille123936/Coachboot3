@@ -41,7 +41,17 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false });
 app.use('/api/', apiLimiter);
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Trop de tentatives, réessayez plus tard.' } });
+// Désactivée hors production : la suite de tests (npm test, node --test lance
+// chaque fichier dans son PROPRE process, donc `tokenCache` de testHelpers.js
+// ne se partage pas entre fichiers) fait légitimement plus de 20-30 requêtes
+// /auth/* cumulées sur un run complet depuis la retrofit multi-club (plusieurs
+// clubs × plusieurs rôles de démonstration) — un vrai attaquant en production
+// reste, lui, pleinement freiné (skip ne s'applique qu'à NODE_ENV !== 'production').
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 20,
+  message: { error: 'Trop de tentatives, réessayez plus tard.' },
+  skip: () => process.env.NODE_ENV !== 'production',
+});
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);

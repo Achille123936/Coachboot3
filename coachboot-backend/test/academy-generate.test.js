@@ -11,6 +11,9 @@ test.after(() => pool.end());
 // cette session de ne jamais fabriquer un résultat). chapterCount=1 pour
 // limiter le coût/la latence tout en couvrant réellement le chemin complet.
 test('Academy — AI Course Generator (Gemini), génération réelle + intégration au pipeline existant', async (t) => {
+  // Academy = contenu PARTAGÉ plateforme-entière (retrofit multi-club), mais
+  // N'IMPORTE QUEL club peut y contribuer : technical_director (peu importe le
+  // club) et admin (superadmin) sont tous deux autorisés — voir academy.routes.js.
   const staffToken = await loginAs(DEMO_ACCOUNTS.technical_director);
   const playerToken = await loginAs(DEMO_ACCOUNTS.player);
   let courseId, chapterId, quizId, lessonId, exerciseId, questionIds;

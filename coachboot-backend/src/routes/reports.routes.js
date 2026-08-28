@@ -3,16 +3,24 @@ const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const pool = require('../config/db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireClubScope } = require('../middleware/auth');
 const { validateUuidParam } = require('../middleware/validateUuid');
+const { addClubFilter } = require('../utils/tenantScope');
 
 router.param('id', validateUuidParam);
+router.use(requireAuth, requireClubScope);
 
-/** GET /api/reports?type=Match|Physique|Scouting|Médical|Tactique */
-router.get('/', requireAuth, asyncHandler(async (req, res) => {
+/** GET /api/reports?type=Match|Physique|Scouting|Médical|Tactique
+ * Partagé à tout le staff DU CLUB (pas verrouillé à son auteur) — un rapport
+ * rédigé par un head_coach doit rester lisible par son technical_director,
+ * décision explicite documentée dans le plan de la retrofit multi-tenant.
+ */
+router.get('/', asyncHandler(async (req, res) => {
   const { type } = req.query;
-  const params = []; let where = '';
-  if (type) { params.push(type); where = 'WHERE type = $1'; }
+  const conditions = []; const params = [];
+  if (type) { params.push(type); conditions.push(`r.type = $${params.length}`); }
+  addClubFilter(conditions, params, req.clubId, 'r.club_id');
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const { rows } = await pool.query(
     `SELECT r.*, u.full_name AS created_by_name FROM reports r LEFT JOIN users u ON u.id = r.created_by ${where} ORDER BY report_date DESC`,
     params
@@ -20,12 +28,14 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
   res.json({ reports: rows });
 }));
 
-router.post('/', requireAuth, asyncHandler(async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { title, type, report_date } = req.body;
   if (!title || !type) return res.status(400).json({ error: 'Le titre et le type du rapport sont requis.' });
+  const clubId = req.clubId ?? req.body.club_id;
+  if (!clubId) return res.status(400).json({ error: 'club_id est requis.' });
   const { rows } = await pool.query(
-    `INSERT INTO reports (title, type, report_date, created_by) VALUES ($1,$2,COALESCE($3,CURRENT_DATE),$4) RETURNING *`,
-    [title, type, report_date, req.user.id]
+    `INSERT INTO reports (club_id, title, type, report_date, created_by) VALUES ($1,$2,$3,COALESCE($4,CURRENT_DATE),$5) RETURNING *`,
+    [clubId, title, type, report_date, req.user.id]
   );
   res.status(201).json({ report: rows[0] });
 }));
@@ -36,10 +46,13 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
  * du rapport en base — pas de statistiques inventées : le contenu se limite
  * à ce que la table `reports` sait effectivement (titre, type, date, auteur).
  */
-router.get('/:id/export', requireAuth, asyncHandler(async (req, res) => {
+router.get('/:id/export', asyncHandler(async (req, res) => {
+  const conditions = ['r.id = $1'];
+  const params = [req.params.id];
+  addClubFilter(conditions, params, req.clubId, 'r.club_id');
   const { rows } = await pool.query(
-    `SELECT r.*, u.full_name AS created_by_name FROM reports r LEFT JOIN users u ON u.id = r.created_by WHERE r.id = $1`,
-    [req.params.id]
+    `SELECT r.*, u.full_name AS created_by_name FROM reports r LEFT JOIN users u ON u.id = r.created_by WHERE ${conditions.join(' AND ')}`,
+    params
   );
   if (!rows.length) return res.status(404).json({ error: 'Rapport introuvable.' });
   const report = rows[0];

@@ -1,18 +1,25 @@
 const router = require('express').Router();
 const pool = require('../config/db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireClubScope } = require('../middleware/auth');
 const { buildUpdateSet } = require('../utils/buildUpdate');
 const { validateUuidParam } = require('../middleware/validateUuid');
 const { createNotification } = require('../utils/notify');
+const { addClubFilter } = require('../utils/tenantScope');
 
 router.param('id', validateUuidParam);
+router.use(requireAuth, requireClubScope);
 
-router.get('/', requireAuth, asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
+  const conditions = [];
+  const params = [];
+  addClubFilter(conditions, params, req.clubId, 'i.club_id');
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const { rows } = await pool.query(`
     SELECT i.*, p.first_name, p.last_name
     FROM injuries i JOIN players p ON p.id = i.player_id
-    ORDER BY i.start_date DESC`);
+    ${where}
+    ORDER BY i.start_date DESC`, params);
   res.json({ injuries: rows });
 }));
 
@@ -28,12 +35,23 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
  *  - le statut actuel du joueur (déjà blessé = risque maximal affiché).
  * Ce n'est pas un modèle entraîné (aucune donnée labellisée n'est disponible),
  * mais un score pondéré explicable sur des indicateurs réels de charge/historique.
+ * Club-scopé : le pool de joueurs (et donc le calcul) ne mélange jamais deux clubs.
  */
-router.get('/risk-scores', requireAuth, asyncHandler(async (req, res) => {
+router.get('/risk-scores', asyncHandler(async (req, res) => {
+  const playersConditions = []; const playersParams = [];
+  const sessionsConditions = []; const sessionsParams = [];
+  const injuriesConditions = []; const injuriesParams = [];
+  addClubFilter(playersConditions, playersParams, req.clubId);
+  addClubFilter(sessionsConditions, sessionsParams, req.clubId);
+  addClubFilter(injuriesConditions, injuriesParams, req.clubId);
+  const playersWhere = playersConditions.length ? `WHERE ${playersConditions.join(' AND ')}` : '';
+  const sessionsWhere = sessionsConditions.length ? `WHERE ${sessionsConditions.join(' AND ')}` : '';
+  const injuriesWhere = injuriesConditions.length ? `WHERE ${injuriesConditions.join(' AND ')}` : '';
+
   const [{ rows: players }, { rows: sessions }, { rows: injuries }] = await Promise.all([
-    pool.query(`SELECT id, first_name, last_name, status FROM players`),
-    pool.query(`SELECT player_id, session_date, distance_km, high_intensity_km FROM gps_sessions`),
-    pool.query(`SELECT player_id, start_date, status FROM injuries`),
+    pool.query(`SELECT id, first_name, last_name, status FROM players ${playersWhere}`, playersParams),
+    pool.query(`SELECT player_id, session_date, distance_km, high_intensity_km FROM gps_sessions ${sessionsWhere}`, sessionsParams),
+    pool.query(`SELECT player_id, start_date, status FROM injuries ${injuriesWhere}`, injuriesParams),
   ]);
 
   const now = Date.now();
@@ -93,19 +111,31 @@ router.get('/risk-scores', requireAuth, asyncHandler(async (req, res) => {
   res.json({ scores, category_counts });
 }));
 
-router.post('/', requireAuth, requireRole('fitness_coach', 'head_coach'), asyncHandler(async (req, res) => {
+router.post('/', requireRole('fitness_coach', 'head_coach'), asyncHandler(async (req, res) => {
   const { player_id, type, start_date, expected_return, status, notes } = req.body;
   if (!player_id || !type || !start_date) {
     return res.status(400).json({ error: 'player_id, type et start_date sont requis.' });
   }
+
+  // player_id est fourni par le client — vérifier qu'il appartient bien au
+  // club de l'appelant avant d'écrire quoi que ce soit (sinon un club pourrait
+  // créer une blessure sur le joueur d'un AUTRE club via un id deviné/copié).
+  const playerConditions = ['id = $1'];
+  const playerParams = [player_id];
+  addClubFilter(playerConditions, playerParams, req.clubId);
+  const { rows: playerRows } = await pool.query(`SELECT id, club_id, first_name, last_name FROM players WHERE ${playerConditions.join(' AND ')}`, playerParams);
+  if (!playerRows.length) return res.status(404).json({ error: 'Joueur introuvable.' });
+  const clubId = req.clubId ?? playerRows[0].club_id;
+
   const { rows } = await pool.query(
-    `INSERT INTO injuries (player_id, type, start_date, expected_return, status, notes)
-     VALUES ($1,$2,$3,$4,COALESCE($5,'En soins'),$6) RETURNING *`,
-    [player_id, type, start_date, expected_return || null, status, notes || null]
+    `INSERT INTO injuries (club_id, player_id, type, start_date, expected_return, status, notes)
+     VALUES ($1,$2,$3,$4,$5,COALESCE($6,'En soins'),$7) RETURNING *`,
+    [clubId, player_id, type, start_date, expected_return || null, status, notes || null]
   );
   // Un joueur blessé passe automatiquement au statut "Blessé"
   const { rows: [player] } = await pool.query(`UPDATE players SET status = 'Blessé' WHERE id = $1 RETURNING first_name, last_name`, [player_id]);
   await createNotification({
+    clubId,
     title: 'Alerte blessure',
     body: player ? `${player.first_name} ${player.last_name} — ${type}` : `Nouvelle blessure enregistrée (${type})`,
     category: 'alerte',
@@ -113,17 +143,21 @@ router.post('/', requireAuth, requireRole('fitness_coach', 'head_coach'), asyncH
   res.status(201).json({ injury: rows[0] });
 }));
 
-router.put('/:id', requireAuth, requireRole('fitness_coach', 'head_coach'), asyncHandler(async (req, res) => {
+router.put('/:id', requireRole('fitness_coach', 'head_coach'), asyncHandler(async (req, res) => {
   const fields = ['type', 'expected_return', 'status', 'notes'];
   const { updates, params } = buildUpdateSet(fields, req.body);
   if (!updates.length) return res.status(400).json({ error: 'Aucun champ à mettre à jour.' });
+  const conditions = [];
   params.push(req.params.id);
-  const { rows } = await pool.query(`UPDATE injuries SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+  conditions.push(`id = $${params.length}`);
+  addClubFilter(conditions, params, req.clubId);
+  const { rows } = await pool.query(`UPDATE injuries SET ${updates.join(', ')} WHERE ${conditions.join(' AND ')} RETURNING *`, params);
   if (!rows.length) return res.status(404).json({ error: 'Blessure introuvable.' });
 
   if (req.body.status === 'Rétabli') {
     const { rows: [player] } = await pool.query(`UPDATE players SET status = 'Disponible' WHERE id = $1 RETURNING first_name, last_name`, [rows[0].player_id]);
     await createNotification({
+      clubId: rows[0].club_id,
       title: 'Retour de blessure',
       body: player ? `${player.first_name} ${player.last_name} est de nouveau disponible.` : 'Un joueur est de nouveau disponible.',
       category: 'succès',

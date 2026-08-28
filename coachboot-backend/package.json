@@ -14,7 +14,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@google/generative-ai": "^0.24.1",
-    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
@@ -30,5 +29,8 @@
     "pdfkit": "^0.19.1",
     "pg": "^8.22.0",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
   }
 }

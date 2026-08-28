@@ -15,7 +15,12 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { generateCourse, validateGenerated, LEVELS } = require('../services/geminiCourseGenerator');
 
-const ACADEMY_AUTHOR_ROLES = ['technical_director']; // + admin via le bypass déjà présent dans requireRole
+// L'Academy est un contenu PARTAGÉ, plateforme-entière (voir la retrofit
+// multi-club) — mais N'IMPORTE QUEL club peut y contribuer : un technical_director,
+// de N'IMPORTE quel club, peut générer/enregistrer un cours (visible ensuite par
+// tous les clubs), en plus du bypass 'admin' déjà présent dans requireRole.
+// (Choix produit confirmé explicitement — pas réservé au superadmin.)
+const ACADEMY_AUTHOR_ROLES = ['technical_director'];
 
 /**
  * POST /api/academy/generate — appelle Gemini pour générer un cours complet.

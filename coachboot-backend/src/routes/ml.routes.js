@@ -14,10 +14,12 @@ const { spawn } = require('child_process');
 const multer = require('multer');
 const pool = require('../config/db');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireClubScope } = require('../middleware/auth');
 const { validateUuidParam } = require('../middleware/validateUuid');
+const { addClubFilter } = require('../utils/tenantScope');
 
 router.param('id', validateUuidParam);
+router.use(requireAuth, requireClubScope);
 
 const ML_DIR = path.join(__dirname, '..', '..', 'ml');
 const MODELS_DIR = path.join(ML_DIR, 'models');
@@ -79,8 +81,10 @@ function runPython(scriptName, args) {
  * multipart/form-data : csv (fichier), name, task (regression|classification),
  * target, features (JSON string d'un tableau de noms de colonnes).
  */
-router.post('/train', requireAuth, requireRole(...ML_ROLES), upload.single('csv'), asyncHandler(async (req, res) => {
+router.post('/train', requireRole(...ML_ROLES), upload.single('csv'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier CSV requis (champ "csv").' });
+  const clubId = req.clubId ?? req.body.club_id;
+  if (!clubId) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'club_id est requis.' }); }
 
   const { name, task, target } = req.body;
   let features;
@@ -118,10 +122,10 @@ router.post('/train', requireAuth, requireRole(...ML_ROLES), upload.single('csv'
     ]);
 
     const { rows } = await pool.query(
-      `INSERT INTO ml_models (id, name, task, target, features, metrics, feature_importances, row_count_raw, row_count_clean, status, dataset_type, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'trained',$10,$11) RETURNING *`,
+      `INSERT INTO ml_models (id, club_id, name, task, target, features, metrics, feature_importances, row_count_raw, row_count_clean, status, dataset_type, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'trained',$11,$12) RETURNING *`,
       [
-        modelId, name, task, target,
+        modelId, clubId, name, task, target,
         JSON.stringify(result.features), JSON.stringify(result.metrics), JSON.stringify(result.feature_importances),
         result.row_count_raw, result.row_count_clean, datasetType, req.user.id,
       ]
@@ -139,27 +143,32 @@ router.post('/train', requireAuth, requireRole(...ML_ROLES), upload.single('csv'
 }));
 
 /** GET /api/ml/models — historique des modèles entraînés */
-router.get('/models', requireAuth, asyncHandler(async (req, res) => {
+router.get('/models', asyncHandler(async (req, res) => {
+  const conditions = []; const params = [];
+  addClubFilter(conditions, params, req.clubId, 'm.club_id');
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const { rows } = await pool.query(
     `SELECT m.*, u.full_name AS created_by_name FROM ml_models m
      LEFT JOIN users u ON u.id = m.created_by
-     ORDER BY m.created_at DESC`
+     ${where} ORDER BY m.created_at DESC`, params
   );
   res.json({ models: rows });
 }));
 
-/** POST /api/ml/models/:id/deploy — déploie ce modèle (archive l'ancien déployé pour la même cible) */
-router.post('/models/:id/deploy', requireAuth, requireRole(...ML_ROLES), asyncHandler(async (req, res) => {
+/** POST /api/ml/models/:id/deploy — déploie ce modèle (archive l'ancien déployé pour la même cible, dans le même club) */
+router.post('/models/:id/deploy', requireRole(...ML_ROLES), asyncHandler(async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows: modelRows } = await client.query('SELECT * FROM ml_models WHERE id = $1', [req.params.id]);
+    const modelConditions = ['id = $1']; const modelParams = [req.params.id];
+    addClubFilter(modelConditions, modelParams, req.clubId);
+    const { rows: modelRows } = await client.query(`SELECT * FROM ml_models WHERE ${modelConditions.join(' AND ')}`, modelParams);
     if (!modelRows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Modèle introuvable.' }); }
     const model = modelRows[0];
 
     await client.query(
-      `UPDATE ml_models SET status = 'archived' WHERE task = $1 AND target = $2 AND status = 'deployed'`,
-      [model.task, model.target]
+      `UPDATE ml_models SET status = 'archived' WHERE club_id = $1 AND task = $2 AND target = $3 AND status = 'deployed'`,
+      [model.club_id, model.task, model.target]
     );
     const { rows } = await client.query(`UPDATE ml_models SET status = 'deployed' WHERE id = $1 RETURNING *`, [req.params.id]);
     await client.query('COMMIT');
@@ -173,20 +182,24 @@ router.post('/models/:id/deploy', requireAuth, requireRole(...ML_ROLES), asyncHa
 }));
 
 /** DELETE /api/ml/models/:id — supprime le modèle (base + fichier sur disque) */
-router.delete('/models/:id', requireAuth, requireRole(...ML_ROLES), asyncHandler(async (req, res) => {
-  const { rowCount } = await pool.query('DELETE FROM ml_models WHERE id = $1', [req.params.id]);
+router.delete('/models/:id', requireRole(...ML_ROLES), asyncHandler(async (req, res) => {
+  const conditions = ['id = $1']; const params = [req.params.id];
+  addClubFilter(conditions, params, req.clubId);
+  const { rowCount } = await pool.query(`DELETE FROM ml_models WHERE ${conditions.join(' AND ')}`, params);
   if (!rowCount) return res.status(404).json({ error: 'Modèle introuvable.' });
   fs.rm(path.join(MODELS_DIR, req.params.id), { recursive: true, force: true }, () => {});
   res.status(204).send();
 }));
 
 /** POST /api/ml/predict — { model_id, input: { feature: valeur, ... } } */
-router.post('/predict', requireAuth, asyncHandler(async (req, res) => {
+router.post('/predict', asyncHandler(async (req, res) => {
   const { model_id, input } = req.body;
   if (!model_id || !input || typeof input !== 'object') {
     return res.status(400).json({ error: 'model_id et input (objet de valeurs de features) sont requis.' });
   }
-  const { rows } = await pool.query('SELECT id FROM ml_models WHERE id = $1', [model_id]);
+  const conditions = ['id = $1']; const params = [model_id];
+  addClubFilter(conditions, params, req.clubId);
+  const { rows } = await pool.query(`SELECT id FROM ml_models WHERE ${conditions.join(' AND ')}`, params);
   if (!rows.length) return res.status(404).json({ error: 'Modèle introuvable.' });
 
   try {

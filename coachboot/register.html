@@ -73,6 +73,28 @@
     
   </div>
             <div class="field"><label>Rôle</label><select><option>Entraîneur principal</option><option>Préparateur physique</option><option>Analyste vidéo</option><option>Data Analyst</option><option>Président</option><option>Joueur</option><option>Parent</option></select></div>
+
+            <div class="field">
+    <label>Votre club</label>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button type="button" id="clubModeJoin" class="btn btn-sm" style="flex:1;">J'ai un code d'invitation</button>
+      <button type="button" id="clubModeCreate" class="btn btn-sm btn-primary" style="flex:1;">Je crée un nouveau club</button>
+    </div>
+    <div id="clubModeJoinPanel" style="display:none;">
+      <div class="input-icon">
+        <i class="fa-solid fa-key"></i>
+        <input type="text" id="inviteCodeInput" placeholder="Ex. FC-ZETWAL-A8K2" value="" autocomplete="off">
+      </div>
+      <small style="display:block;margin-top:4px;opacity:.7;">Demandez ce code à votre club — il rattache votre compte à ses données, séparées de celles des autres clubs.</small>
+    </div>
+    <div id="clubModeCreatePanel">
+      <div class="input-icon">
+        <i class="fa-solid fa-shield-halved"></i>
+        <input type="text" id="newClubNameInput" placeholder="Ex. FC Étoile" value="" autocomplete="off">
+      </div>
+      <small style="display:block;margin-top:4px;opacity:.7;">Un nouveau club est créé pour votre équipe — un code d'invitation est généré pour que vos coéquipiers puissent vous rejoindre ensuite.</small>
+    </div>
+  </div>
             <button type="submit" class="btn btn-primary btn-block">Créer mon compte <i class="fa-solid fa-arrow-right"></i></button>
           </form>
           <p style="text-align:center;margin-top:18px;font-size:12.5px;">
@@ -118,17 +140,45 @@
         html.setAttribute('data-theme', next);
         localStorage.setItem('coachboot-theme', next);
       });
+      let clubMode = 'create'; // 'join' | 'create' — "Je crée un nouveau club" est le bouton actif par défaut
+      const joinBtn = document.getElementById('clubModeJoin');
+      const createBtn = document.getElementById('clubModeCreate');
+      const joinPanel = document.getElementById('clubModeJoinPanel');
+      const createPanel = document.getElementById('clubModeCreatePanel');
+      function setClubMode(mode) {
+        clubMode = mode;
+        joinPanel.style.display = mode === 'join' ? 'block' : 'none';
+        createPanel.style.display = mode === 'create' ? 'block' : 'none';
+        joinBtn.classList.toggle('btn-primary', mode === 'join');
+        createBtn.classList.toggle('btn-primary', mode === 'create');
+      }
+      joinBtn?.addEventListener('click', () => setClubMode('join'));
+      createBtn?.addEventListener('click', () => setClubMode('create'));
+      setClubMode('create');
+
       document.getElementById('authForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type=submit]');
         const inputs = e.target.querySelectorAll('input');
-        const [name, email, password] = Array.from(inputs).map(i => i.value);
+        const [name, email, password] = Array.from(inputs).slice(0, 3).map(i => i.value);
              const role = e.target.querySelector('select')?.value;
+             const invite_code = clubMode === 'join' ? document.getElementById('inviteCodeInput')?.value?.trim() : undefined;
+             const new_club_name = clubMode === 'create' ? document.getElementById('newClubNameInput')?.value?.trim() : undefined;
         submitBtn.disabled = true; submitBtn.style.opacity = '.6';
         try {
-          const result = await CB_API.register({ name, email, password, role });
+          const result = await CB_API.register({ name, email, password, role, invite_code, new_club_name });
           CB_API.saveSession(result.token, result.user);
-          await Swal.fire({ title: 'Compte créé', text: 'Bienvenue ' + result.user.name + ' — vos pages seront désormais alimentées par l\'API en direct.', icon: 'success', confirmButtonColor: '#2C8F5E' });
+          if (result.club) {
+            await Swal.fire({
+              title: 'Club créé : ' + result.club.name,
+              html: 'Bienvenue ' + result.user.name + ' !<br><br>Code d\'invitation à partager avec votre équipe :<br>'
+                + '<code style="font-size:1.2em;font-weight:bold;user-select:all;">' + result.club.invite_code + '</code>'
+                + '<br><small>Notez-le maintenant — vos coéquipiers en auront besoin pour s\'inscrire.</small>',
+              icon: 'success', confirmButtonColor: '#2C8F5E', confirmButtonText: 'J\'ai noté le code',
+            });
+          } else {
+            await Swal.fire({ title: 'Compte créé', text: 'Bienvenue ' + result.user.name + ' — vos pages seront désormais alimentées par l\'API en direct.', icon: 'success', confirmButtonColor: '#2C8F5E' });
+          }
           window.location.href = 'dashboard.html';
         } catch (err) {
           if (err.status) {

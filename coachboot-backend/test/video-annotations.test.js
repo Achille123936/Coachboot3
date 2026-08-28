@@ -97,12 +97,15 @@ test('Télestration vidéo — corrélation GPS (GET /video/annotations/:id/gps)
   let gpsSessionId, matchLiveId;
   const anchor = new Date(Date.now() - 3600 * 1000); // il y a 1h, pour ne heurter aucune donnée réelle
 
+  let clubId;
   await t.test('préparation : identifier le joueur lié au compte "player" et un autre joueur', async () => {
     const { data: me } = await request('/players/me', { token: playerToken });
     ownPlayerId = me.player.id;
     const { data: all } = await request('/players', { token: staffToken });
     otherPlayerId = all.players.find((p) => p.id !== ownPlayerId).id;
     assert.ok(ownPlayerId && otherPlayerId);
+    const { rows } = await pool.query('SELECT club_id FROM players WHERE id = $1', [ownPlayerId]);
+    clubId = rows[0].club_id; // requis (NOT NULL) pour les inserts bruts gps_sessions/matches_live ci-dessous
   });
 
   await t.test('préparation : clip avec ancrage horaire + joueur, et clip sans ancrage', async () => {
@@ -157,11 +160,11 @@ test('Télestration vidéo — corrélation GPS (GET /video/annotations/:id/gps)
 
   await t.test('un vrai point GPS (gps_points) à 30s de la cible est trouvé', async () => {
     gpsSessionId = require('node:crypto').randomUUID();
-    await pool.query('INSERT INTO gps_sessions (id, player_id, session_date, distance_km) VALUES ($1,$2,CURRENT_DATE,5.2)', [gpsSessionId, ownPlayerId]);
+    await pool.query('INSERT INTO gps_sessions (id, club_id, player_id, session_date, distance_km) VALUES ($1,$2,$3,CURRENT_DATE,5.2)', [gpsSessionId, clubId, ownPlayerId]);
     const recordedAt = new Date(anchor.getTime() + 60_000 + 30_000); // cible (ancre+60s) + 30s
     await pool.query(
-      'INSERT INTO gps_points (session_id, seq, latitude, longitude, speed_kmh, recorded_at) VALUES ($1,1,18.5944,-72.3074,14.2,$2)',
-      [gpsSessionId, recordedAt]
+      'INSERT INTO gps_points (club_id, session_id, seq, latitude, longitude, speed_kmh, recorded_at) VALUES ($1,$2,1,18.5944,-72.3074,14.2,$3)',
+      [clubId, gpsSessionId, recordedAt]
     );
     const { status, data } = await request(`/video/annotations/${annoOwn}/gps`, { token: staffToken });
     assert.equal(status, 200);
@@ -173,11 +176,11 @@ test('Télestration vidéo — corrélation GPS (GET /video/annotations/:id/gps)
 
   await t.test('un point gps_live_tracking plus proche (5s) est préféré au point gps_points (30s)', async () => {
     matchLiveId = require('node:crypto').randomUUID();
-    await pool.query("INSERT INTO matches_live (id, team_home, team_away) VALUES ($1,'A','B')", [matchLiveId]);
+    await pool.query("INSERT INTO matches_live (id, club_id, team_home, team_away) VALUES ($1,$2,'A','B')", [matchLiveId, clubId]);
     const ts = new Date(anchor.getTime() + 60_000 + 5_000); // cible + 5s
     await pool.query(
-      'INSERT INTO gps_live_tracking (match_id, player_id, latitude, longitude, speed, timestamp) VALUES ($1,$2,18.6000,-72.3100,16.7,$3)',
-      [matchLiveId, ownPlayerId, ts]
+      'INSERT INTO gps_live_tracking (club_id, match_id, player_id, latitude, longitude, speed, timestamp) VALUES ($1,$2,$3,18.6000,-72.3100,16.7,$4)',
+      [clubId, matchLiveId, ownPlayerId, ts]
     );
     const { status, data } = await request(`/video/annotations/${annoOwn}/gps`, { token: staffToken });
     assert.equal(status, 200);
