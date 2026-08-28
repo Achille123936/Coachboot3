@@ -140,6 +140,7 @@
                     <button class="va-tool-btn" id="vaClearBtn" title="Tout effacer"><i class="fa-solid fa-broom"></i></button>
                     <button class="va-tool-btn" id="vaTagPlayerBtn" title="Associer la sélection à un joueur (pour la corrélation GPS)"><i class="fa-solid fa-user-tag"></i></button>
                     <div class="sep"></div>
+                    <button class="va-tool-btn" id="vaPlayPauseBtn" title="Lecture / Pause (le canvas de dessin bloque les clics directs sur le lecteur)"><i class="fa-solid fa-play"></i></button>
                     <button class="va-tool-btn" id="vaFrameBackBtn" title="Image précédente"><i class="fa-solid fa-backward-step"></i></button>
                     <button class="va-tool-btn" id="vaFrameFwdBtn" title="Image suivante"><i class="fa-solid fa-forward-step"></i></button>
                     <button class="va-tool-btn" id="vaExportBtn" title="Exporter les annotations (JSON)"><i class="fa-solid fa-file-export"></i></button>
@@ -228,6 +229,7 @@
       deleteBtn: document.getElementById('vaDeleteBtn'),
       clearBtn: document.getElementById('vaClearBtn'),
       tagPlayerBtn: document.getElementById('vaTagPlayerBtn'),
+      playPauseBtn: document.getElementById('vaPlayPauseBtn'),
       frameBackBtn: document.getElementById('vaFrameBackBtn'),
       frameFwdBtn: document.getElementById('vaFrameFwdBtn'),
       exportBtn: document.getElementById('vaExportBtn'),
@@ -269,6 +271,18 @@
       pause() {
         if (this.type === 'youtube') { if (this.ytReady && this.yt) this.yt.pauseVideo(); }
         else els.video.pause();
+      },
+      // Le canvas de dessin est TOUJOURS au-dessus (superposition volontaire, nécessaire
+      // pour dessiner par-dessus la vidéo) — il intercepte donc tout clic destiné aux
+      // contrôles natifs du lecteur en dessous (bouton play YouTube y compris). D'où ce
+      // bouton dédié dans la barre d'outils, qui pilote la lecture directement via l'API.
+      play() {
+        if (this.type === 'youtube') { if (this.ytReady && this.yt) this.yt.playVideo(); }
+        else els.video.play();
+      },
+      get isPaused() {
+        if (this.type === 'youtube') return !(this.ytReady && this.yt && this.yt.getPlayerState() === 1);
+        return els.video.paused;
       },
       get width() {
         return (this.type === 'youtube' ? els.ytWrap.clientWidth : els.video.clientWidth) || els.canvas.clientWidth || 640;
@@ -320,7 +334,7 @@
           videoId,
           playerVars: { playsinline: 1, rel: 0 },
           events: {
-            onReady: () => { player.ytReady = true; resizeCanvas(); redraw(); },
+            onReady: () => { player.ytReady = true; resizeCanvas(); redraw(); updatePlayPauseIcon(); },
             onStateChange: (evt) => {
               // Pas d'événement "timeupdate" natif côté YouTube — on redessine en
               // boucle pendant la lecture (annotations horodatées, flèches animées),
@@ -332,6 +346,7 @@
                 if (ytRedrawInterval) { clearInterval(ytRedrawInterval); ytRedrawInterval = null; }
                 redraw();
               }
+              updatePlayPauseIcon();
             },
           },
         });
@@ -545,6 +560,17 @@
     els.video.addEventListener('timeupdate', redraw);
     els.video.addEventListener('seeked', redraw);
     els.video.addEventListener('loadedmetadata', resizeCanvas);
+
+    function updatePlayPauseIcon() {
+      const icon = els.playPauseBtn.querySelector('i');
+      icon.className = player.isPaused ? 'fa-solid fa-play' : 'fa-solid fa-pause';
+    }
+    els.video.addEventListener('play', updatePlayPauseIcon);
+    els.video.addEventListener('pause', updatePlayPauseIcon);
+    els.playPauseBtn.addEventListener('click', () => {
+      if (player.isPaused) player.play(); else player.pause();
+      setTimeout(updatePlayPauseIcon, 80);
+    });
 
     // ---- Outils ----
     document.querySelectorAll('.va-tool-btn[data-tool]').forEach((btn) => {
